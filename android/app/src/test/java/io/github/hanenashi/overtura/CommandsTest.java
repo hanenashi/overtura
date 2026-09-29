@@ -41,4 +41,24 @@ public class CommandsTest {
         assertThrows(IllegalArgumentException.class, () -> Commands.readOnlyQuery("my-node", "session.create"));
         assertThrows(IllegalArgumentException.class, () -> Commands.readOnlyQuery("my-node;id", "doctor"));
     }
+
+    @Test public void backgroundArgumentsDoNotRequireLocalShellParsing() {
+        String[] args = Commands.readOnlyArgs("my-node", "session.list");
+        assertEquals("-T", args[0]);
+        assertEquals("--", args[9]);
+        assertEquals("my-node", args[10]);
+        assertEquals("exec \"$HOME/.local/bin/overtura\" --json session list", args[11]);
+        assertThrows(IllegalArgumentException.class, () -> Commands.readOnlyArgs("node;id", "doctor"));
+        assertThrows(IllegalArgumentException.class, () -> Commands.readOnlyArgs("my-node", "session.create"));
+    }
+
+    @Test public void termuxShellOnlyStartsBoundedReadOnlySsh() throws Exception {
+        String command = Commands.termuxShellQuery("my-node", "doctor").replaceFirst("^exec ", "");
+        Process process = new ProcessBuilder("/bin/sh", "-c",
+            "timeout() { printf '%s\\n' \"$@\"; }; " + command).start();
+        String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+        assertEquals(0, process.waitFor());
+        assertTrue(output.startsWith("-k\n1s\n18s\nssh\n-T\n"));
+        assertTrue(output.endsWith("--\nmy-node\nexec \"$HOME/.local/bin/overtura\" --json doctor\n"));
+    }
 }

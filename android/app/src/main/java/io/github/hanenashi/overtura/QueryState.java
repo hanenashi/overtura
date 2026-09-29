@@ -55,6 +55,15 @@ public final class QueryState {
 
     public String remoteError() { return remoteError; }
 
+    public boolean fail(long request, ApiReply.FailureKind kind, long now) {
+        expire(now);
+        if (request != active || status != Status.LOADING) return false;
+        active = -1;
+        failure = new ApiReply.Failure(kind);
+        status = Status.ERROR;
+        return true;
+    }
+
     public void expire(long now) {
         if (status == Status.LOADING && now - startedAt >= TIMEOUT_MS) {
             active = -1;
@@ -69,6 +78,13 @@ public final class QueryState {
         status = Status.IDLE;
         failure = null;
         remoteError = null;
+    }
+
+    public void reset() {
+        cancel();
+        snapshot = null;
+        host = null;
+        operation = null;
     }
 
     public boolean isStale(long now) {

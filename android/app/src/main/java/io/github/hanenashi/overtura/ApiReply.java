@@ -14,7 +14,7 @@ import java.util.Set;
 /** Validates the v1 wire format without retaining raw stdout or stderr. */
 public final class ApiReply {
     public static final int MAX_BYTES = 262144;
-    public enum FailureKind { CONNECTION, UNSUPPORTED_CLI, UNSUPPORTED_SCHEMA, MALFORMED, TIMEOUT }
+    public enum FailureKind { CONNECTION, UNSUPPORTED_CLI, UNSUPPORTED_SCHEMA, MALFORMED, TIMEOUT, TERMUX_SETUP }
     public static final class Failure extends Exception {
         public final FailureKind kind;
         public Failure(FailureKind kind) {
@@ -24,6 +24,7 @@ public final class ApiReply {
                 case UNSUPPORTED_SCHEMA -> "The host uses an unsupported API version.";
                 case MALFORMED -> "The host reply could not be read. Check CLI compatibility and shell startup output.";
                 case TIMEOUT -> "The request timed out. Previous results may be out of date.";
+                case TERMUX_SETUP -> "Termux could not run this query. Check its installation, Run commands permission, and allow-external-apps setting.";
             });
             this.kind = kind;
         }
@@ -139,6 +140,7 @@ public final class ApiReply {
 
     public static ApiReply parse(int exitCode, String stdout, String expectedCommand) throws Failure {
         if (exitCode == 255) throw new Failure(FailureKind.CONNECTION);
+        if (exitCode == 124) throw new Failure(FailureKind.TIMEOUT);
         if (exitCode == 126 || exitCode == 127) throw new Failure(FailureKind.UNSUPPORTED_CLI);
         if (stdout == null || stdout.isBlank()) {
             throw new Failure(exitCode == 2 ? FailureKind.UNSUPPORTED_CLI : FailureKind.MALFORMED);

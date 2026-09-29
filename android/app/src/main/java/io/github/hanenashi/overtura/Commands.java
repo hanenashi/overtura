@@ -40,17 +40,28 @@ public final class Commands {
         return login(host) + " " + quote(command);
     }
 
-    /** Future background diagnostics: read-only, no PTY, no password prompt. */
+    /** Copyable equivalent of the background query for debugging in Termux. */
     public static String readOnlyQuery(String host, String operation) {
-        String args;
+        String[] args = readOnlyArgs(host, operation);
+        return "ssh -T -o BatchMode=yes -o ConnectTimeout=8 -o ServerAliveInterval=5"
+            + " -o ServerAliveCountMax=2 -- " + quote(args[10]) + " " + quote(args[11]);
+    }
+
+    public static String termuxShellQuery(String host, String operation) {
+        return "exec timeout -k 1s 18s " + readOnlyQuery(host, operation);
+    }
+
+    /** Structured equivalent of a read-only SSH query. */
+    public static String[] readOnlyArgs(String host, String operation) {
+        String remote;
         switch (operation) {
-            case "capabilities": args = "capabilities"; break;
-            case "doctor": args = "doctor"; break;
-            case "session.list": args = "session list"; break;
+            case "capabilities": remote = "capabilities"; break;
+            case "doctor": remote = "doctor"; break;
+            case "session.list": remote = "session list"; break;
             default: throw new IllegalArgumentException("Unsupported read-only query.");
         }
-        return "ssh -T -o BatchMode=yes -o ConnectTimeout=8 -o ServerAliveInterval=5"
-            + " -o ServerAliveCountMax=2 -- " + quote(alias(host)) + " "
-            + quote("exec \"$HOME/.local/bin/overtura\" --json " + args);
+        return new String[]{"-T", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8",
+            "-o", "ServerAliveInterval=5", "-o", "ServerAliveCountMax=2", "--",
+            alias(host), "exec \"$HOME/.local/bin/overtura\" --json " + remote};
     }
 }

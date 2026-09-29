@@ -80,4 +80,16 @@ public class QueryStateTest {
         assertEquals(QueryState.Status.IDLE, state.status());
         assertTrue(state.isStale(5));
     }
+
+    @Test public void changingSavedHostClearsPreviousResult() throws Exception {
+        QueryState state = new QueryState();
+        long request = state.begin("first-node", "doctor", 0);
+        state.complete(request, 0, fixture("doctor-ok"), 1);
+        state.reset();
+        assertNull(state.snapshot());
+        assertEquals(QueryState.Status.IDLE, state.status());
+        request = state.begin("second-node", "doctor", 2);
+        assertNull(state.snapshot());
+        assertFalse(state.complete(request - 1, 0, fixture("doctor-ok"), 3));
+    }
 }

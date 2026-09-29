@@ -10,7 +10,7 @@ Not yet. It prepares commands and opens Termux. Review the command, paste it int
 
 ## Where are my SSH keys?
 
-In Termux. This app stores only your chosen SSH alias and session name locally. It does not read keys, passwords, terminal output or SSH configuration.
+In Termux. This app stores only your chosen SSH alias and session name locally. It does not read keys, passwords, interactive terminal output or SSH configuration. If you tap a live check, it receives that read-only command's result.
 
 ## Do I need Tailscale?
 

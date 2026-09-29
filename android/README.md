@@ -3,13 +3,19 @@
 A native Android companion for Pixel, supporting Android 15 and newer. It uses
 platform views and no runtime libraries. Offline guides come from `docs/mobile`.
 
-The initial build has Start, Install, Sessions and FAQ pages. An SSH alias and
-session name are stored in app-private preferences with backups disabled. Actions
-preview a command, copy it, and optionally open Termux. The user pastes and runs
-the command; no background command execution is requested. Installation snippets
-explicitly distinguish commands to run on the Debian host from local Termux SSH
-commands. The app requires no Android permissions and never reads SSH keys or
-terminal output.
+The app has Start, Install, Sessions and FAQ pages. An SSH alias and session
+name are stored in app-private preferences with backups disabled. Manual actions
+preview a command, copy it, and optionally open Termux for the user to run it.
+The Install page guides a fresh Pixel through dependencies, SSH keys, aliases,
+host setup and the optional live query permission.
+
+Live Doctor and Sessions queries use Termux's RUN_COMMAND interface only when
+tapped. They run SSH in the background and show validated JSON results with
+freshness and failure states. The Android app never reads SSH keys or takes
+ownership of host verification. Termux's `com.termux.permission.RUN_COMMAND`
+permission and `allow-external-apps=true` setting are both required; manual
+copy/open actions remain available. The current source has not yet passed
+on-device validation of this new transport.
 
 ## Build
 
@@ -49,18 +55,20 @@ command in the clipboard, and returns to Start. It never executes that command
 or reads Termux terminal contents. Screenshots stay in a temporary directory
 outside the repository.
 
-The initial preview was verified on an Android 15 emulator and a Pixel running
-Android 17. The emulator covered the missing-Termux fallback; the Pixel covered
-the real app handoff. The build, three command unit tests and Android lint pass.
-The Pixel's SSH route also passed a separate read-only host doctor check. The
-app itself does not execute or capture that diagnostic.
+The original manual-command preview was verified on an Android 15 emulator and
+a Pixel running Android 17. The emulator covered the missing-Termux fallback;
+the Pixel covered the real app handoff. The new live-query build has not yet
+been installed or tested on a device.
 
-## JSON consumer foundation
+## Live query transport
 
-`ApiReply`, `QueryState`, and `Commands.readOnlyQuery` prepare read-only host
-queries without changing the Activity or requesting execution permissions.
-The [v1 protocol boundary](../docs/protocol-v1.md) documents validation, stale
-results, deadlines, and responsibilities for the later Termux transport.
+`ApiReply`, `QueryState`, and `TermuxBridge` power read-only host queries.
+Termux version 0.109 or newer is needed for result callbacks. The query runs
+under an 18-second Termux `timeout` (provided by `coreutils`), with a 20-second
+app deadline. Results over 256 KiB or truncated by Termux are rejected.
+The [v1 protocol boundary](../docs/protocol-v1.md) documents response validation.
 Shared fixtures in `tests/fixtures/protocol-v1` run in both Python and JVM tests.
 The JVM org.json dependency is test-only; runtime uses Android's platform decoder.
-Run the build command above for unit tests, lint and APK assembly without ADB.
+Run the build command above for unit tests, lint and APK assembly. Permission,
+callback and lifecycle behavior still need Pixel verification before releasing
+this app build.

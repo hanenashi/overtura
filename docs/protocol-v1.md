@@ -133,7 +133,8 @@ exceed the companion reader's limits; show an error rather than partial success.
 using `ssh -T`, `BatchMode=yes`, an eight-second connection timeout, and server
 alive checks. It keeps host keys and credentials in Termux's SSH configuration.
 It does not disable host-key verification. First connection, password prompts,
-and key unlocking belong in the manual Termux flow. No query is executed yet.
+and key unlocking belong in the manual Termux flow. The Android app now runs
+these queries only after a tap and Termux permission/setup.
 
 `ApiReply` uses the platform JSON decoder and validates required fields and their
 types. It accepts schema 1, limits responses to 256 KiB and nesting to 32 levels,
@@ -155,16 +156,18 @@ cancelled. A failed refresh keeps the previous snapshot explicitly stale. A
 failed doctor with valid checks is fresh data requiring attention. A failed list
 with null data cannot replace a prior list with an empty success.
 
-These classes have no UI, service, scheduler, or process ownership. The later
-transport must enforce deadlines and byte limits while capturing output (before
-calling the parser), stop its own work on cancellation, safely deliver callbacks,
-and render freshness and errors explicitly. A timeout here rejects late replies
-but cannot terminate a process by itself.
+`TermuxBridge` now uses the opt-in Termux RUN_COMMAND permission and a one-shot
+callback for background queries. Termux must also have `allow-external-apps=true`
+and `coreutils` installed. The shell command uses `timeout` to stop SSH after
+18 seconds (with a one-second kill grace); the UI rejects callbacks after 20
+seconds. Leaving the Activity or changing hosts drops callbacks, while an
+already-started SSH command may run until its Termux timeout. Termux truncation
+metadata and the 256 KiB parser limit prevent partial replies from appearing
+as complete data. Callbacks are not persisted across app process termination.
+Manual copy/open remains available.
 
-Next: opt-in Termux RUN_COMMAND permission/setup and callback transport, preserving
-manual copy/open; then Pixel tests for success, failed checks, unavailable hosts,
+Pixel testing is still needed for success, failed checks, unavailable hosts,
 old CLIs, denied permission, timeouts, cancellation and Android lifecycle changes.
-ADB installation and on-device testing are deferred to that phase.
 
 ## Verification for this phase
 
@@ -173,3 +176,7 @@ ADB installation and on-device testing are deferred to that phase.
   loss followed by reattachment to the same shell process passed.
 - 17 Android JVM tests passed; Android lint reported no issues; debug APK assembly
   passed. No ADB, emulator, phone installation or on-device checks ran in this phase.
+
+The subsequent Termux transport and onboarding phase is covered by Android JVM
+tests, lint and a debug build. Android permission and callback delivery remain
+pending device verification.

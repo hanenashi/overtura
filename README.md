@@ -172,5 +172,6 @@ boot services and additional platforms remain future work.
 
 The [Pixel companion app](android/README.md) provides offline [TL;DR](docs/mobile/tldr.md),
 [FAQ](docs/mobile/faq.md), [installation guidance](docs/mobile/install.md), and
-session commands to copy into Termux. See its [scope and next steps](docs/android-app.md).
+session commands to copy into Termux. The current source also adds opt-in live
+Doctor and session-list queries. See its [scope and next steps](docs/android-app.md).
 Android device automation remains separate from this companion app.
