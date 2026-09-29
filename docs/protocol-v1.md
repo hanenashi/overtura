@@ -166,9 +166,10 @@ as complete data. Callbacks are not persisted across app process termination.
 Manual copy/open remains available.
 
 The Pixel smoke test covered successful Doctor and Sessions replies, an
-unreachable SSH alias, and recovery after restoring the alias. Failed host
-checks, old CLIs, denied permission, timeouts, cancellation and Android
-lifecycle changes still need device testing.
+unreachable SSH alias, and recovery after restoring the alias. The 0.2.1 ADB
+reliability pass additionally covered denied permission, failed Doctor and
+older-CLI response fixtures, timeout, background cancellation and process
+recreation. Rotation and permission revocation during a query remain untested.
 
 ## Verification history
 
@@ -183,11 +184,18 @@ lint and a debug build. Its 0.2.0 debug APK was installed on a Pixel running
 Android 17. The user granted Termux command permission and enabled external
 commands in Termux. Live Doctor and Sessions queries succeeded; an unreachable
 alias produced the expected connection error, and restoring the alias restored
-the session list. This is an initial on-device smoke test, not full coverage of
-the remaining cases above.
+the session list. This initial device smoke test preceded the reliability pass.
 
 An assisted fresh-phone setup on a second Pixel on 2026-09-30 also confirmed
 live Doctor and session-list callbacks after enabling Termux external commands
 and granting the Android permission. Manual SSH, Doctor, session creation and
 detach/reattach passed against an existing Debian host over local Wi-Fi. This
-does not extend coverage to the transport edge cases listed above.
+did not itself cover transport failures.
+
+For app 0.2.1, `android/reliability.py` exercises Termux's real SSH and callback
+path against a temporary SSH fixture server. Denied permission prevented any
+request; failed Doctor data, the old-CLI empty exit-2 case, timeout and recovery
+passed. Background cancellation ignored a late result. Android process death
+and restoration preserved navigation/scroll while discarding transient results.
+The runner restores the phone's original configuration and permissions. This
+pass changes neither CLI 0.2.0 nor the protocol-v1 contract.

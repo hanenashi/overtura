@@ -175,7 +175,7 @@ public class MainActivity extends Activity {
         TextView brand = text("◉  OVERTURA", 15, INK, true);
         brand.setLetterSpacing(0.12f);
         header.addView(brand, new LinearLayout.LayoutParams(0, -2, 1));
-        TextView edition = text("PIXEL / 0.2", 10, GREEN, true);
+        TextView edition = text("PIXEL / 0.2.1", 10, GREEN, true);
         edition.setLetterSpacing(0.08f);
         header.addView(edition);
         root.addView(header);

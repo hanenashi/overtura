@@ -81,8 +81,8 @@ Shared fixtures in `tests/fixtures/protocol-v1` run in both Python and JVM tests
 The JVM org.json dependency is test-only; runtime uses Android's platform decoder.
 Run the build command above for unit tests, lint and APK assembly. The Pixel
 smoke test confirms permission grant and successful/error callback delivery.
-Permission denial, host check failures, older CLIs, timeouts, cancellation,
-and Activity lifecycle changes remain to be tested before a release claim.
+The additional reliability checks below cover denied permission, failed Doctor
+and older-CLI response fixtures, timeouts, cancellation, and process recreation.
 
 On 2026-09-30, the expanded beginner guide was used in an assisted fresh-phone
 walkthrough on a second Pixel. Overtura was installed through ADB; Termux was
@@ -99,3 +99,37 @@ device. Local validation passed 23 JVM tests, lint and debug APK assembly.
 The scroll-position fix was installed on a Pixel and checked after a current-tab
 tap, app resume, tab switch, and live session-list refresh. JVM tests, lint and
 debug APK assembly passed for the fix.
+
+## ADB reliability checks
+
+With the debug app already configured on an authorized test Pixel, Termux SSH
+access available from this computer, and Termux live queries enabled:
+
+```sh
+python3 reliability.py --serial DEVICE --phone-ssh PHONE_SSH_ALIAS
+```
+
+Run this on Linux with Python 3, ADB, OpenSSH client tools and `/usr/sbin/sshd`.
+Both arguments must identify the same phone. The runner starts an unprivileged
+SSH server bound to localhost, with throwaway keys and a forced fixture command.
+An ADB reverse forward makes it reachable from Termux. It temporarily changes
+the app's saved alias and command permission, and prepends a test SSH alias to
+Termux's configuration. Cleanup restores app preferences, permission flags and
+the original SSH configuration, removes the forward and keys, and stops the
+test server. If cleanup fails, it reports the remaining recovery backups.
+Terminal contents and production SSH keys are never read.
+
+The 0.2.1 candidate passed on a Pixel running Android 17:
+
+- Denied permission prevented SSH; manual command preview remained available.
+- Failed Doctor data was displayed as needing attention.
+- An empty exit-2 reply displayed the older-CLI/update message.
+- A sleeping fixture reached the transport timeout; the next request recovered.
+- Leaving the app invalidated the pending result and ignored a late callback.
+- Background process death and recreation restored the tab and scroll position
+  while clearing transient host results.
+- Query refreshes preserved the visible scroll position.
+
+These are real Termux/SSH/callback checks with controlled response fixtures,
+not installations of old CLI releases or failures on a production host. Rotation,
+permission revocation during a query and other Android versions are not covered.

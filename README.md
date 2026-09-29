@@ -172,7 +172,7 @@ clipboard integration, boot services and additional platforms remain future work
 
 The [Pixel companion app](android/README.md) provides offline [TL;DR](docs/mobile/tldr.md),
 [FAQ](docs/mobile/faq.md), [installation guidance](docs/mobile/install.md), and
-session commands to copy into Termux. The 0.2.0 debug app adds opt-in live
-Doctor and session-list queries, initially smoke-tested on a Pixel. See its
+session commands to copy into Termux. The 0.2.1 preview includes opt-in live
+Doctor and session-list queries and preserves scroll positions. See its
 [scope and remaining checks](docs/android-app.md).
 Android device automation remains separate from this companion app.

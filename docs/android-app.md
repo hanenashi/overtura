@@ -46,10 +46,18 @@ ADB and Termux through its GitHub release route. This used local Wi-Fi and an
 existing configured Debian host. Help was provided with APK selection and SSH
 alias values; it was not an unaided test of the guide.
 
-Next, test permission denial, host check failures, an older CLI, timeouts,
-cancellation, and Activity lifecycle changes. F-Droid installation, an unaided
-beginner walkthrough and access away from the local network remain unverified.
-The APK has not been published as a release asset.
+The 0.2.1 candidate also passed ADB reliability checks on a Pixel running
+Android 17: denied permission prevented SSH while the manual preview remained
+available; controlled SSH replies covered failed Doctor, an older CLI's empty
+exit-2 response, timeout, and recovery. Background cancellation ignored a late
+reply. Killing the background app process and reopening it restored its tab
+and scroll position without claiming fresh host data. Test settings were restored.
+
+App 0.2.1 is a debug-signed preview candidate; see its
+[release notes](releases/app-v0.2.1.md). F-Droid installation, an unaided
+beginner walkthrough and access away from the local
+network remain unverified. Rotation, permission revocation during a request,
+and other Android versions are outside this device test pass.
 
 Embedded SSH and a terminal are later choices, not prerequisites for this app.
 Credentials should remain in Termux until there is a reason to take ownership
