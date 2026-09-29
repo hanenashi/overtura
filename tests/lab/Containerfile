@@ -1,0 +1,17 @@
+FROM docker.io/library/debian:13-slim
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        python3 python3-venv tmux openssh-server ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --create-home --shell /bin/bash tester \
+    && passwd -d tester \
+    && install -d -m 0700 -o tester -g tester /home/tester/.ssh \
+    && rm -f /etc/ssh/ssh_host_*key*
+
+COPY overtura.py install.py /opt/overtura/
+COPY tests/test_cli.py /opt/overtura/tests/
+COPY tests/lab/sshd_config /etc/ssh/overtura_lab_config
+COPY tests/lab/start-sshd.sh /usr/local/bin/start-lab-sshd
+
+CMD ["/bin/sh", "/usr/local/bin/start-lab-sshd"]

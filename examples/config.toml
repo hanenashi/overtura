@@ -1,0 +1,11 @@
+version = 1
+
+[host]
+workspace = "~"
+
+[workloads.shell]
+command = ["/bin/sh"]
+
+# Optional: install and authenticate the command separately.
+# [workloads.agent]
+# command = ["your-agent-command", "--your-option"]

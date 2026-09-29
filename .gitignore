@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+.venv/
+.env
+.env.*
+!*.example
+
+# Android build output and local signing / SDK configuration
+.gradle/
+**/build/
+local.properties
+*.apk
+*.aab
+*.jks
+*.keystore
+.idea/

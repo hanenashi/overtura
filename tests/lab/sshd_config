@@ -1,0 +1,15 @@
+Port 22
+HostKey /etc/ssh/ssh_host_ed25519_key
+AuthorizedKeysFile .ssh/authorized_keys
+AllowUsers tester
+PermitRootLogin no
+PubkeyAuthentication yes
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PermitEmptyPasswords no
+UsePAM no
+DisableForwarding yes
+X11Forwarding no
+PrintMotd no
+LogLevel ERROR
+Subsystem sftp internal-sftp
