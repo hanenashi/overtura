@@ -107,9 +107,8 @@ def main():
         assert find("SSH alias in Termux", "content-desc").get("text") == "my-node"
         assert find("Session name", "content-desc").get("text") == "demo"
         tap("Install")
-        tap("Run doctor")
-        find("Check the host")
-        tap("CANCEL")
+        find("1 · Download Termux")
+        screenshot("install.png")
         tap("FAQ")
         find("Where does my work run?")
         screenshot("faq.png")

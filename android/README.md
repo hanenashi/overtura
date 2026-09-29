@@ -6,8 +6,10 @@ platform views and no runtime libraries. Offline guides come from `docs/mobile`.
 The app has Start, Install, Sessions and FAQ pages. An SSH alias and session
 name are stored in app-private preferences with backups disabled. Manual actions
 preview a command, copy it, and optionally open Termux for the user to run it.
-The Install page guides a fresh Pixel through dependencies, SSH keys, aliases,
-host setup and the optional live query permission.
+The Install page starts with getting Termux through F-Droid, opening it once,
+and trying a harmless first command. It then explains phone tools, SSH keys,
+editing aliases in Nano, host setup and the optional live query permission.
+Commands identify whether they belong on the phone or the Debian host.
 
 Live Doctor and Sessions queries use Termux's RUN_COMMAND interface only when
 tapped. They run SSH in the background and show validated JSON results with
@@ -77,5 +79,16 @@ The JVM org.json dependency is test-only; runtime uses Android's platform decode
 Run the build command above for unit tests, lint and APK assembly. The Pixel
 smoke test confirms permission grant and successful/error callback delivery.
 Permission denial, host check failures, older CLIs, timeouts, cancellation,
-Activity lifecycle changes, and a fresh install on another Pixel remain to be
-tested before a release claim.
+and Activity lifecycle changes remain to be tested before a release claim.
+
+On 2026-09-30, the expanded beginner guide was used in an assisted fresh-phone
+walkthrough on a second Pixel. Overtura was installed through ADB; Termux was
+obtained through its GitHub release route. SSH key authorization, manual login,
+Doctor, session creation, detach/reattach, live Doctor and live session listing
+all passed over local Wi-Fi to an existing configured Debian host. The user
+received help choosing the Termux APK and filling in the SSH alias.
+
+This verifies the assisted setup path, not an unaided beginner walkthrough,
+the F-Droid installation route, a fresh Debian host, or access away from the
+local network. The updated automated smoke script has not been rerun on a
+device. Local validation passed 23 JVM tests, lint and debug APK assembly.

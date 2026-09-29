@@ -252,17 +252,44 @@ public class MainActivity extends Activity {
 
     private void installPage() {
         heading("GET CONNECTED", "One host.\nA few small steps.", "Set up Termux on your Pixel and Overtura on your Debian machine.");
+        LinearLayout download = card();
+        label(download, "START HERE · ON YOUR PIXEL");
+        add(download, text("1 · Download Termux", 21, INK, true), 10);
+        add(download, text("Termux gives your phone a terminal: a place to type commands. Overtura uses it to connect to your Debian computer, called the host.", 15, MUTED, false), 12);
+        add(download, text("New to Termux? Open its F-Droid page below. Install the F-Droid app using Download F-Droid, open it, let its catalogue load, then search for Termux and tap Install. F-Droid is an app store; Termux is the app you need from it.", 14, MUTED, false), 12);
+        add(download, text("If Android asks, allow installs from the browser or F-Droid you are using, then return to the installer. Already have Termux? Keep it and use its original source for updates. Do not uninstall it just to follow this guide: that can erase its files and keys.", 14, MUTED, false), 14);
+        add(download, button("Get Termux through F-Droid ↗", true, () -> browse("https://f-droid.org/packages/com.termux/")), 10);
+        add(download, button("Other official install options ↗", false, () -> browse("https://github.com/termux/termux-app#installation")), 0);
+
+        LinearLayout firstRun = card();
+        label(firstRun, "ON THIS PIXEL · FIRST LAUNCH");
+        add(firstRun, text("2 · Open Termux once", 21, INK, true), 10);
+        add(firstRun, text("Open Termux and wait for its initial setup to finish. A welcome message and a line ending in $ usually mean it is ready. The blinking cursor is where you type. You do not type the $ itself.", 14, MUTED, false), 12);
+        add(firstRun, text("Try the practice command below. Tap Copy + Termux, long-press by the cursor, choose Paste, then press Enter on the keyboard. You should see Termux is ready, then another prompt. Return here using Android's recent apps.", 14, MUTED, false), 14);
+        add(firstRun, button("Open Termux", true, this::openTermux), 10);
+        add(firstRun, button("Try a first command", false, () -> preview("Practice in Termux", "echo 'Termux is ready'")), 10);
+        add(firstRun, text("If you are already connected to a host, type exit to return to the phone, or swipe from Termux's left edge and choose NEW SESSION. Phone commands below belong in this local shell.", 14, MUTED, false), 0);
+
+        LinearLayout packages = card();
+        label(packages, "ON THIS PIXEL · TOOLS");
+        add(packages, text("3 · Install the phone tools", 21, INK, true), 10);
+        add(packages, text("OpenSSH connects to your host. Coreutils supplies the time limit for live checks. Nano lets you edit setup files. You do not need Termux:API or shared-storage access for this setup.", 14, MUTED, false), 12);
+        add(packages, text("Copy the command, paste in local Termux and press Enter. If asked to continue, type y and press Enter. Wait until the prompt returns without errors. A download error means check your internet connection and try again.", 14, MUTED, false), 14);
+        add(packages, button("Install phone tools", true, () -> preview("Install tools in local Termux", "pkg update && pkg install openssh coreutils nano")), 10);
+        add(packages, button("Check SSH is installed", false, () -> preview("Check phone tools", "ssh -V", "Run in local Termux. A line starting with OpenSSH means the SSH client is installed. This does not connect to a host yet.")), 0);
+
         LinearLayout phone = card();
         label(phone, "ON THIS PIXEL · TERMUX");
-        add(phone, text("Prepare your SSH connection", 21, INK, true), 10);
-        add(phone, text("Install Termux from its official sources. Then run these in a local Termux shell. Keep any existing SSH key.", 14, MUTED, false), 14);
-        add(phone, button("1 · Install SSH tools", false, () -> preview("In local Termux", "pkg update && pkg install openssh coreutils")), 10);
-        add(phone, button("2 · Create an SSH key", false, () -> preview("In local Termux", "mkdir -p ~/.ssh && chmod 700 ~/.ssh && ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519",
-            "Only do this if ~/.ssh/id_ed25519 does not exist. Keep the private key on this phone. Press Enter for a default location and choose a passphrase if you want one.")), 10);
-        add(phone, button("3 · Set an SSH alias", false, () -> preview("Example ~/.ssh/config", "Host my-node\n    HostName HOST_ADDRESS\n    User HOST_USER\n    IdentityFile ~/.ssh/id_ed25519\n    IdentitiesOnly yes",
-            "Edit ~/.ssh/config in Termux. Replace HOST_ADDRESS and HOST_USER with your own host details. Use an address reachable from this phone. Verify the host key fingerprint with the host owner before accepting it.")), 10);
-        add(phone, button("4 · Authorize the public key", false, () -> preview("In local Termux", "ssh-copy-id my-node && ssh my-node",
-            "Use your real SSH alias in place of my-node. This requires an existing password login or help from the host owner. Only the public key goes to the host. Never copy the private key.")), 0);
+        add(phone, text("4 · Prepare your SSH connection", 21, INK, true), 10);
+        add(phone, text("You need the host's reachable address, your username there, and a way to authorize your phone. Ask the host owner for these. If the computer is not ready, follow ON THE DEBIAN HOST below first. Already connect from Termux? Skip to YOUR CONNECTION.", 14, MUTED, false), 14);
+        add(phone, button("Create an SSH key", false, () -> preview("In local Termux", "ssh-keygen -t ed25519",
+            "Skip this if you already have an SSH key. Press Enter for the default file location. If asked to overwrite an existing key, answer n and stop. Choose a passphrase and repeat it; typing is invisible. Pressing Enter twice leaves it empty. Keep the private key on this phone.")), 10);
+        add(phone, button("Open the SSH alias file", false, () -> preview("Edit in local Termux", "mkdir -p ~/.ssh && chmod 700 ~/.ssh && nano ~/.ssh/config",
+            "Run this to open Nano, a text editor. Return here for the example, then paste it into Nano, not at a shell prompt. Preserve existing entries. After editing: Ctrl+O, Enter saves; Ctrl+X exits. Use Termux's CTRL key above the keyboard.")), 10);
+        add(phone, button("Copy an alias example", false, () -> preview("Text for the open Nano editor", "Host my-node\n    HostName HOST_ADDRESS\n    User HOST_USER\n    IdentityFile ~/.ssh/id_ed25519\n    IdentitiesOnly yes",
+            "This is file content, not a command. Open the alias file with the previous button first. Paste into Nano and replace HOST_ADDRESS and HOST_USER with your host details. my-node is a nickname you choose; use the same nickname in Overtura. Save with Ctrl+O, Enter; exit with Ctrl+X.")), 10);
+        add(phone, button("Authorize the public key", false, () -> preview("In local Termux", "ssh-copy-id my-node",
+            "Replace my-node if you chose another alias. Confirm the host fingerprint with its owner before answering yes. Enter your account password on the HOST when asked; typing shows no dots. If password login is unavailable, ask the owner to install your .pub key. Never send the private key.")), 0);
         LinearLayout hostCard = card();
         label(hostCard, "YOUR CONNECTION");
         field(hostCard, "SSH alias in Termux", "host", "my-node", "");
@@ -292,7 +319,9 @@ public class MainActivity extends Activity {
         LinearLayout automation = card();
         label(automation, "OPTIONAL LIVE CHECKS");
         add(automation, text("Enable Termux queries", 20, INK, true), 10);
-        add(automation, text("For live Doctor and Sessions, allow “Run commands in Termux” in Android app permissions. In Termux, edit ~/.termux/termux.properties and set allow-external-apps=true. Restart Termux. Use a current Termux release. This also allows other apps you grant that permission to run Termux commands.", 14, MUTED, false), 0);
+        add(automation, text("First make Connect in Termux work. For live Doctor and Sessions, edit Termux's settings file and put allow-external-apps=true on its own line, replacing any existing setting. Save with Ctrl+O, Enter and exit with Ctrl+X. Run termux-reload-settings in local Termux. Then tap Check host now, grant Overtura “Run commands in Termux”, and tap Check host now again. Enabled apps with that permission can run Termux commands.", 14, MUTED, false), 12);
+        add(automation, button("Open Termux settings file", false, () -> preview("Edit in local Termux", "mkdir -p ~/.termux && nano ~/.termux/termux.properties",
+            "In Nano, set allow-external-apps=true on its own line. Remove a leading # if present. Preserve other settings. Save with Ctrl+O, Enter; exit with Ctrl+X. Then run termux-reload-settings.")), 0);
         add(page, button("Termux project ↗", false, () -> browse("https://github.com/termux/termux-app#installation")), 10);
         add(page, button("Overtura APK releases ↗", false, () -> browse("https://github.com/hanenashi/overtura/releases")), 10);
         add(page, button("Overtura source ↗", false, () -> browse("https://github.com/hanenashi/overtura")), 0);
@@ -473,11 +502,11 @@ public class MainActivity extends Activity {
     private void openTermux() {
         Intent launch = getPackageManager().getLaunchIntentForPackage("com.termux");
         if (launch == null) {
-            message("Termux is needed", "Your command was copied. Install Termux using the project link on the Install page, then paste the command there.");
+            message("Termux is needed", "Use Download Termux at the top of the Install page, install it, and open it once. Then return to Overtura and try again.");
             return;
         }
         try { startActivity(launch); }
-        catch (ActivityNotFoundException error) { message("Could not open Termux", "Your command was copied. Open Termux yourself and paste it."); }
+        catch (ActivityNotFoundException error) { message("Could not open Termux", "Open Termux from your phone's app list, then return here to continue."); }
     }
 
     private void browse(String url) {

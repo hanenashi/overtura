@@ -26,7 +26,9 @@ Sessions refreshes. The app requests Termux's permission and tells the user
 to enable `allow-external-apps=true`; neither is changed silently. Results are
 bounded, validated and labelled when stale. Create and attach keep the manual
 Termux handoff. The Install page now covers a fresh Pixel's apps, SSH tools,
-key, alias and host preparation.
+key, alias and host preparation. It starts with an F-Droid download route,
+Termux's first prompt, a harmless practice command, and paste/Enter instructions.
+Nano instructions distinguish SSH configuration text from shell commands.
 
 ## Pixel verification and next milestone
 
@@ -37,9 +39,17 @@ connection error for an unreachable alias, and recovered by restoring the alias.
 Manual Termux handoff and the host's JSON Doctor command also worked. This
 verifies successful and connection-error callback delivery on that device.
 
+On 2026-09-30, an assisted fresh-phone walkthrough on a second Pixel also passed:
+SSH key authorization and login, manual Doctor, session creation, detach and
+reattach, live Doctor, and live session listing. Overtura was installed through
+ADB and Termux through its GitHub release route. This used local Wi-Fi and an
+existing configured Debian host. Help was provided with APK selection and SSH
+alias values; it was not an unaided test of the guide.
+
 Next, test permission denial, host check failures, an older CLI, timeouts,
-cancellation, and Activity lifecycle changes. A fresh install on another Pixel
-is also pending. The APK has not been published as a release asset.
+cancellation, and Activity lifecycle changes. F-Droid installation, an unaided
+beginner walkthrough and access away from the local network remain unverified.
+The APK has not been published as a release asset.
 
 Embedded SSH and a terminal are later choices, not prerequisites for this app.
 Credentials should remain in Termux until there is a reason to take ownership
@@ -53,6 +63,12 @@ of key storage, host verification and terminal lifecycle.
 4. Copy/open Termux, paste and run doctor on a configured host.
 5. Create and reattach a named session using the same handoff.
 6. Confirm invalid aliases and names cannot inject shell syntax.
+
+For the expanded beginner guide, also walk through downloading Termux, opening
+it for the first time, installing phone tools, and editing the SSH alias in
+Nano. Verify the user can distinguish phone commands from host commands and
+can make a first connection from these instructions. The assisted second-Pixel
+walkthrough above passed; an unaided walkthrough remains pending.
 
 Use the disposable Debian lab for repeatable CLI installation and SSH tests.
 Keep device addresses, keys, pairing data, local SDK paths, APKs and screenshots

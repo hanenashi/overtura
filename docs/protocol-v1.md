@@ -185,3 +185,9 @@ commands in Termux. Live Doctor and Sessions queries succeeded; an unreachable
 alias produced the expected connection error, and restoring the alias restored
 the session list. This is an initial on-device smoke test, not full coverage of
 the remaining cases above.
+
+An assisted fresh-phone setup on a second Pixel on 2026-09-30 also confirmed
+live Doctor and session-list callbacks after enabling Termux external commands
+and granting the Android permission. Manual SSH, Doctor, session creation and
+detach/reattach passed against an existing Debian host over local Wi-Fi. This
+does not extend coverage to the transport edge cases listed above.
