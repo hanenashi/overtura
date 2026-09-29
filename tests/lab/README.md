@@ -34,7 +34,8 @@ explicit allowlist of source and test files. The container has outbound network
 access and is intended for trusted project tests, not hostile code.
 
 `check` installs the CLI as the unprivileged test user, creates configuration,
-runs doctor and the integration suite, and verifies session survival by abruptly
+runs doctor and the integration suite, checks successful JSON queries and failed
+diagnostics over SSH, and verifies session survival by abruptly
 killing a real SSH client, reconnecting and checking the original shell PID.
 It removes only its uniquely named probe session. Repeated checks preserve other
 sessions and existing test-user configuration.
@@ -66,6 +67,6 @@ reproductions. The script refuses to alter a same-named container without its
 ownership label. It never runs Podman as root or requests privileged containers.
 
 Verified with rootless Podman 5.4.2 and cgroups v2: installation and doctor pass,
-all 17 integration tests pass inside Debian 13, and the real SSH reconnection
+the CLI/protocol integration tests pass inside Debian 13, and the real SSH reconnection
 probe preserves the original shell process. The running container was checked
 for its loopback binding, resource limits, and absence of host mounts.

@@ -52,10 +52,14 @@ the CLI while leaving a session usable through tmux. They do not use live SSH
 destinations or private agent accounts.
 
 The disposable rootless Podman lab now also verifies installation on fresh Debian
-13 userspace, all 17 tests, and abrupt loss of a real SSH client followed by
+13 userspace, the CLI/protocol tests, JSON replies over SSH, and abrupt loss of a real SSH client followed by
 reattachment to the same shell process. Its SSH listener is loopback-only and it
 mounts no host directories. See `tests/lab/README.md` for reproduction commands.
 
 A full VM installation, host reboot behavior, and interruption of a physical
 network connection remain separate checks. A container shares its host kernel;
 killing an SSH client does not reproduce every network failure mode.
+
+The [v1 JSON boundary](protocol-v1.md) adds machine-readable diagnostics and
+session metadata to the same CLI. Android consumer/state code is prepared;
+Termux callback transport and live status UI remain a separate milestone.

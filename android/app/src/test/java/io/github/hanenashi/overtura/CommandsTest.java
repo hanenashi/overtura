@@ -29,4 +29,16 @@ public class CommandsTest {
         assertTrue(Commands.remote("my-node", "list", "").contains("session list"));
         assertThrows(IllegalArgumentException.class, () -> Commands.remote("my-node", "delete", "work"));
     }
+    @Test public void backgroundQueriesAreReadOnlyAndKeepShellBoundaries() throws Exception {
+        for (String operation : new String[]{"capabilities", "doctor", "session.list"}) {
+            String command = Commands.readOnlyQuery("my-node", operation);
+            Process process = new ProcessBuilder("/bin/sh", "-c", "ssh() { printf '%s\\n' \"$@\"; }; " + command).start();
+            String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            assertEquals(0, process.waitFor());
+            assertTrue(output.startsWith("-T\n-o\nBatchMode=yes\n"));
+            assertTrue(output.endsWith("--\nmy-node\nexec \"$HOME/.local/bin/overtura\" --json " + operation.replace('.', ' ') + "\n"));
+        }
+        assertThrows(IllegalArgumentException.class, () -> Commands.readOnlyQuery("my-node", "session.create"));
+        assertThrows(IllegalArgumentException.class, () -> Commands.readOnlyQuery("my-node;id", "doctor"));
+    }
 }

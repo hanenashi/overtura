@@ -11,6 +11,7 @@ RUN apt-get update \
 
 COPY overtura.py install.py /opt/overtura/
 COPY tests/test_cli.py /opt/overtura/tests/
+COPY tests/fixtures/protocol-v1 /opt/overtura/tests/fixtures/protocol-v1/
 COPY tests/lab/sshd_config /etc/ssh/overtura_lab_config
 COPY tests/lab/start-sshd.sh /usr/local/bin/start-lab-sshd
 

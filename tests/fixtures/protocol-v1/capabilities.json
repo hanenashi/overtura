@@ -1,0 +1,1 @@
+{"schema_version":1,"cli_version":"0.2.0","command":"capabilities","ok":true,"data":{"schema_versions":[1],"config_version":1,"json_commands":["capabilities","doctor","session.list","session.create"],"session_create_requires_detach":true},"error":null}

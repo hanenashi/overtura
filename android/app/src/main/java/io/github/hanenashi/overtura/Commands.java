@@ -39,4 +39,18 @@ public final class Commands {
         }
         return login(host) + " " + quote(command);
     }
+
+    /** Future background diagnostics: read-only, no PTY, no password prompt. */
+    public static String readOnlyQuery(String host, String operation) {
+        String args;
+        switch (operation) {
+            case "capabilities": args = "capabilities"; break;
+            case "doctor": args = "doctor"; break;
+            case "session.list": args = "session list"; break;
+            default: throw new IllegalArgumentException("Unsupported read-only query.");
+        }
+        return "ssh -T -o BatchMode=yes -o ConnectTimeout=8 -o ServerAliveInterval=5"
+            + " -o ServerAliveCountMax=2 -- " + quote(alias(host)) + " "
+            + quote("exec \"$HOME/.local/bin/overtura\" --json " + args);
+    }
 }

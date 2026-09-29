@@ -1,0 +1,1 @@
+{"schema_version":1,"cli_version":"0.2.0","command":"session.list","ok":false,"data":null,"error":{"code":"dependency_missing","message":"tmux is missing; install the Debian tmux package"}}

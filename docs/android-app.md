@@ -19,13 +19,22 @@ permission, Termux execution permission, account login, or background service.
 It does not inspect terminal output or claim that a host is healthy. Diagnostics
 and session lists appear in the real terminal.
 
+## Protocol foundation
+
+The [CLI JSON v1 interface](protocol-v1.md), Android reply reader, and request
+state are implemented and tested locally. They cover read-only query commands,
+version/type validation, failed diagnostics, connection errors, request timeouts,
+late callbacks, host switching, and stale data. They are not connected to the
+Activity yet, so the app continues to show manual command previews.
+
 ## Next milestone
 
-After testing this flow on a Pixel, consider Termux's documented RUN_COMMAND
-interface for opt-in execution. It requires Android permission and Termux's
-allow-external-apps setting. Keep manual copy/open as a fallback. Before showing
-diagnostics or session state in the app, add a versioned JSON CLI interface and
-handle unsupported versions, connection errors and stale results explicitly.
+Add Termux's documented RUN_COMMAND interface for opt-in execution. It requires
+Android permission and Termux's allow-external-apps setting. Keep manual copy/open
+as a fallback. The transport must bound output before parsing, enforce the request
+deadline, handle cancellation and Activity lifecycle changes, and surface stale
+results. Test callbacks, permissions, failures and the complete flow on a Pixel
+before releasing that behavior. No phone testing is claimed for this foundation.
 
 Embedded SSH and a terminal are later choices, not prerequisites for this app.
 Credentials should remain in Termux until there is a reason to take ownership

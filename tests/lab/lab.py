@@ -22,6 +22,10 @@ STATE = Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local/state") /
 FILES = (
     "overtura.py", "install.py", "tests/test_cli.py",
     "tests/lab/Containerfile", "tests/lab/sshd_config", "tests/lab/start-sshd.sh",
+    "tests/fixtures/protocol-v1/capabilities.json",
+    "tests/fixtures/protocol-v1/doctor-ok.json", "tests/fixtures/protocol-v1/doctor-failed.json",
+    "tests/fixtures/protocol-v1/sessions.json", "tests/fixtures/protocol-v1/sessions-empty.json",
+    "tests/fixtures/protocol-v1/dependency-error.json",
 )
 
 
@@ -164,6 +168,17 @@ def check():
     # Setup is intentionally idempotent here without replacing a user's config.
     ssh("sh", "-c", 'test -e "$HOME/.config/overtura/config.toml" || "$HOME/.local/bin/overtura" setup')
     ssh("/home/tester/.local/bin/overtura", "doctor")
+    for operation in [("capabilities",), ("doctor",), ("session", "list")]:
+        reply = json.loads(ssh("/home/tester/.local/bin/overtura", "--json", *operation, capture_output=True).stdout)
+        if reply.get("schema_version") != 1 or reply.get("ok") is not True:
+            raise LabError("JSON query failed validation over SSH")
+    failed_query = shlex.join(["env", "XDG_CONFIG_HOME=/tmp/overtura-no-config-" + uuid.uuid4().hex,
+                              "/home/tester/.local/bin/overtura", "--json", "doctor"])
+    failure = subprocess.run(ssh_base() + [failed_query], text=True, capture_output=True, timeout=15)
+    report = json.loads(failure.stdout)
+    if failure.returncode != 1 or report.get("ok") is not False or report.get("error", {}).get("code") != "doctor_failed":
+        raise LabError("failed doctor did not preserve its structured report over SSH")
+    print("PASS: versioned JSON success and failed diagnostics round-trip over SSH.")
     ssh("python3", "-m", "unittest", "discover", "-s", "/opt/overtura/tests", "-v")
     name = "ssh-probe-" + uuid.uuid4().hex[:12]
     ssh("/home/tester/.local/bin/overtura", "session", "create", name, "--detach")

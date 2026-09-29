@@ -52,6 +52,18 @@ Exit the shell normally to end its session. Agent sessions end when the agent
 command exits. A network disconnect leaves the session running, but a host reboot
 does not preserve processes. There is no automatic boot or agent transcript resume.
 
+## Machine-readable interface
+
+CLI 0.2.0 supports `--json` for capabilities, doctor, session listing, and
+creation with `--detach`. See the [v1 protocol boundary](docs/protocol-v1.md)
+for fields, exit codes, errors, privacy, and the Android consumer contract.
+
+```sh
+overtura --json capabilities
+overtura --json doctor
+overtura --json session list
+```
+
 ## Private configuration
 
 `overtura setup` creates `~/.config/overtura/config.toml` with mode `0600` and

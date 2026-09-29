@@ -54,3 +54,13 @@ Android 17. The emulator covered the missing-Termux fallback; the Pixel covered
 the real app handoff. The build, three command unit tests and Android lint pass.
 The Pixel's SSH route also passed a separate read-only host doctor check. The
 app itself does not execute or capture that diagnostic.
+
+## JSON consumer foundation
+
+`ApiReply`, `QueryState`, and `Commands.readOnlyQuery` prepare read-only host
+queries without changing the Activity or requesting execution permissions.
+The [v1 protocol boundary](../docs/protocol-v1.md) documents validation, stale
+results, deadlines, and responsibilities for the later Termux transport.
+Shared fixtures in `tests/fixtures/protocol-v1` run in both Python and JVM tests.
+The JVM org.json dependency is test-only; runtime uses Android's platform decoder.
+Run the build command above for unit tests, lint and APK assembly without ADB.

@@ -3,6 +3,7 @@
 """A small, dependency-free front end to durable tmux sessions."""
 
 import argparse
+import json
 import os
 from pathlib import Path
 import re
@@ -16,7 +17,8 @@ if sys.version_info < (3, 11):
 
 import tomllib
 
-VERSION = "0.1.0"
+VERSION = "0.2.0"
+SCHEMA_VERSION = 1
 DEFAULT_CONFIG = '''version = 1
 
 [host]
@@ -32,7 +34,32 @@ command = ["/bin/sh"]
 
 
 class Error(Exception):
-    pass
+    def __init__(self, message, code="operation_failed"):
+        super().__init__(message)
+        self.code = code
+
+
+def envelope(command, data=None, error=None):
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "cli_version": VERSION,
+        "command": command,
+        "ok": error is None,
+        "data": data,
+        "error": None if error is None else {"code": error.code, "message": str(error)},
+    }
+
+
+def emit(command, data=None, error=None):
+    print(json.dumps(envelope(command, data, error), ensure_ascii=True), flush=True)
+
+
+class ArgumentParser(argparse.ArgumentParser):
+    def error(self, message):
+        if "--json" in sys.argv[1:]:
+            emit(None, error=Error("invalid arguments; see overtura --help", "invalid_arguments"))
+            raise SystemExit(2)
+        super().error(message)
 
 
 def identifier(value):
@@ -53,12 +80,12 @@ def read_config(path):
         with path.open("rb") as stream:
             data = tomllib.load(stream)
     except FileNotFoundError:
-        raise Error("configuration missing; run overtura setup") from None
+        raise Error("configuration missing; run overtura setup", "config_missing") from None
     except tomllib.TOMLDecodeError:
         # Parser diagnostics can contain values from private configuration.
-        raise Error("invalid TOML configuration; check syntax locally") from None
+        raise Error("invalid TOML configuration; check syntax locally", "config_invalid") from None
     except OSError:
-        raise Error("cannot read configuration; check file permissions") from None
+        raise Error("cannot read configuration; check file permissions", "config_unreadable") from None
     if set(data) - {"version", "host", "workloads"}:
         raise Error("unknown top-level configuration field")
     if type(data.get("version")) is not int or data["version"] != 1:
@@ -116,15 +143,19 @@ def setup(path):
 def tmux_base(args):
     binary = shutil.which("tmux")
     if not binary:
-        raise Error("tmux is missing; install the Debian tmux package")
+        raise Error("tmux is missing; install the Debian tmux package", "dependency_missing")
     # An independent server and configuration keep ordinary tmux sessions intact.
-    return [binary, "-L", args.socket, "-f", "/dev/null"]
+    return [binary, "-u", "-L", args.socket, "-f", "/dev/null"]
 
 
 def tmux(args, *command):
-    return subprocess.run(
-        tmux_base(args) + list(command), text=True, capture_output=True,
-    )
+    try:
+        return subprocess.run(
+            tmux_base(args) + list(command), text=True, encoding="utf-8", errors="replace",
+            capture_output=True, timeout=8,
+        )
+    except subprocess.TimeoutExpired:
+        raise Error("tmux did not respond before the timeout", "tmux_timeout") from None
 
 
 def require_tty():
@@ -146,96 +177,178 @@ def create(args):
         require_tty()
     workspace, workloads = read_config(args.config)
     if args.workload not in workloads:
-        raise Error("unknown workload; check workloads in your configuration")
+        raise Error("unknown workload; check workloads in your configuration", "workload_unknown")
     try:
         cwd = Path(args.cwd).expanduser().resolve() if args.cwd else workspace
     except RuntimeError:
         raise Error("cannot resolve the requested working directory") from None
     if not cwd.is_dir():
-        raise Error("working directory does not exist or is not a directory")
+        raise Error("working directory does not exist or is not a directory", "directory_missing")
     argv = workloads[args.workload]["command"].copy()
     resolved = executable(argv[0])
     if not resolved:
-        raise Error("workload executable unavailable; install it or fix its configured path")
+        raise Error("workload executable unavailable; install it or fix its configured path", "workload_unavailable")
     argv[0] = resolved
     # tmux runs a shell command: quote EVERY argument, never interpolate raw config.
-    result = tmux(args, "new-session", "-d", "-s", args.name, "-c", str(cwd),
+    result = tmux(args, "new-session", "-d", "-P", "-F", "#{session_id}", "-s", args.name, "-c", str(cwd),
                   "exec " + shlex.join(argv))
     if result.returncode:
         if "duplicate session:" in result.stderr:
-            raise Error("session already exists; use session attach with its name")
-        raise Error("tmux could not create the session; check tmux and socket permissions")
-    print(f"Created session {args.name}.", flush=True)
+            raise Error("session already exists; use session attach with its name", "session_exists")
+        raise Error("tmux could not create the session; check tmux and socket permissions", "tmux_failure")
+    if args.json:
+        emit("session.create", {"session": {
+            "id": result.stdout.strip(), "name": args.name, "workload": args.workload,
+        }})
+    else:
+        print(f"Created session {args.name}.", flush=True)
     if not args.detach:
         attach(args)
 
 
-def list_sessions(args):
-    result = tmux(args, "list-sessions", "-F", "#{session_name}\t#{session_windows}\t#{session_attached}")
+def no_server(stderr):
+    return any(message in stderr for message in ("no server running", "No such file or directory", "no sessions"))
+
+
+def session_records(args):
+    # Native tmux names need not obey our identifier rules. Fetch their display
+    # form separately by stable ID so names cannot be mistaken for delimiters.
+    result = tmux(args, "list-sessions", "-F", "#{session_id}|#{session_windows}|#{session_attached}")
     if result.returncode:
-        if "no server running" in result.stderr or "No such file or directory" in result.stderr:
-            print("No sessions.")
-            return
-        raise Error("cannot list sessions; check tmux socket permissions")
+        if no_server(result.stderr):
+            return []
+        raise Error("cannot list sessions; check tmux socket permissions", "tmux_failure")
+    sessions = []
+    seen = set()
+    for row in result.stdout.splitlines():
+        fields = row.split("|")
+        if len(fields) != 3 or not re.fullmatch(r"\$\d+", fields[0]) or not all(re.fullmatch(r"[0-9]{1,10}", v) for v in fields[1:]):
+            raise Error("tmux returned an invalid session record", "tmux_failure")
+        session_id, windows, attached = fields
+        if session_id in seen or not 1 <= int(windows) <= 2147483647 or int(attached) > 2147483647:
+            raise Error("tmux returned an invalid session record", "tmux_failure")
+        seen.add(session_id)
+        name_result = tmux(args, "display-message", "-p", "-t", session_id + ":", "#{session_name}")
+        if name_result.returncode:
+            if no_server(name_result.stderr) or "can't find session" in name_result.stderr:
+                continue  # A session can end between the two read-only queries.
+            raise Error("cannot read session details", "tmux_failure")
+        name = name_result.stdout.removesuffix("\n")
+        if not name:
+            continue
+        sessions.append({
+            "id": session_id, "name": name, "windows": int(windows),
+            "attached_clients": int(attached),
+            "attachable": re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}", name) is not None,
+        })
+    return sessions
+
+
+def list_sessions(args):
+    sessions = session_records(args)
+    if args.json:
+        emit("session.list", {"sessions": sessions})
+        return
+    if not sessions:
+        print("No sessions.")
+        return
     print("NAME\tWINDOWS\tATTACHED CLIENTS")
-    print(result.stdout, end="")
+    for session in sessions:
+        # Do not let manually created names inject terminal control characters.
+        name = "".join(c if c.isprintable() else "?" for c in session["name"])
+        print(f'{name}\t{session["windows"]}\t{session["attached_clients"]}')
 
 
 def doctor(args):
     failures = 0
+    checks = []
 
-    def report(level, message):
+    def report(check_id, level, message):
         nonlocal failures
-        print(f"{level}: {message}")
+        checks.append({"id": check_id, "status": level.lower(), "message": message})
+        if not args.json:
+            print(f"{level}: {message}")
         failures += level == "FAIL"
 
-    report("OK", "Python 3.11+ available")
-    report("OK" if shutil.which("tmux") else "FAIL", "tmux available" if shutil.which("tmux") else "tmux missing (install Debian package: tmux)")
-    report("OK" if shutil.which("ssh") else "WARN", "SSH client available" if shutil.which("ssh") else "SSH client missing (optional for local sessions)")
+    report("python", "OK", "Python 3.11+ available")
+    report("tmux", "OK" if shutil.which("tmux") else "FAIL", "tmux available" if shutil.which("tmux") else "tmux missing (install Debian package: tmux)")
+    report("ssh", "OK" if shutil.which("ssh") else "WARN", "SSH client available" if shutil.which("ssh") else "SSH client missing (optional for local sessions)")
     try:
         workspace, workloads = read_config(args.config)
-        report("OK", "configuration valid")
-        report("OK" if workspace.is_dir() else "FAIL", "workspace exists" if workspace.is_dir() else "workspace directory missing")
+        report("config", "OK", "configuration valid")
+        report("workspace", "OK" if workspace.is_dir() else "FAIL", "workspace exists" if workspace.is_dir() else "workspace directory missing")
         for name, workload in workloads.items():
             try:
                 available = executable(workload["command"][0]) is not None
             except Error:
                 available = False
-            report("OK" if available else "WARN", f"workload {name}: " + ("executable available" if available else "executable unavailable (only this workload is affected)"))
+            report("workload." + name, "OK" if available else "WARN", f"workload {name}: " + ("executable available" if available else "executable unavailable (only this workload is affected)"))
     except Error as exc:
-        report("FAIL", str(exc))
-    report("INFO", "sessions survive disconnection, not host reboot or workload exit")
+        report("config", "FAIL", str(exc))
+    report("durability", "INFO", "sessions survive disconnection, not host reboot or workload exit")
+    if args.json:
+        emit("doctor", {"ready": failures == 0, "checks": checks},
+             Error("one or more required checks failed", "doctor_failed") if failures else None)
     return 1 if failures else 0
 
 
+def capabilities(args):
+    data = {"schema_versions": [SCHEMA_VERSION], "config_version": 1,
+            "json_commands": ["capabilities", "doctor", "session.list", "session.create"],
+            "session_create_requires_detach": True}
+    if args.json:
+        emit("capabilities", data)
+    else:
+        print(f"Overtura {VERSION}; JSON schema {SCHEMA_VERSION}")
+        print("JSON commands: " + ", ".join(data["json_commands"]))
+
+
+def json_option(parser):
+    parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS,
+                        help="emit versioned JSON (create requires --detach)")
+
+
 def parser():
-    result = argparse.ArgumentParser(description=__doc__)
+    result = ArgumentParser(description=__doc__)
+    result.set_defaults(json=False)
+    json_option(result)
     result.add_argument("--version", action="version", version=f"overtura {VERSION}")
     result.add_argument("--config", type=Path, default=config_path(), help="private TOML config path")
     result.add_argument("--socket", type=identifier, default="overtura", help="tmux server name (default: overtura)")
     commands = result.add_subparsers(dest="command", required=True)
-    commands.add_parser("setup", help="create private config without overwriting")
-    commands.add_parser("doctor", help="check requirements without changing the system")
+    json_option(commands.add_parser("setup", help="create private config without overwriting"))
+    json_option(commands.add_parser("doctor", help="check requirements without changing the system"))
+    json_option(commands.add_parser("capabilities", help="describe supported machine interfaces"))
     sessions = commands.add_parser("session", help="manage durable sessions")
+    json_option(sessions)
     operations = sessions.add_subparsers(dest="operation", required=True)
     new = operations.add_parser("create", help="create and attach to a new session")
     new.add_argument("name", type=identifier)
     new.add_argument("--workload", type=identifier, default="shell")
     new.add_argument("--cwd", help="working directory (default: host.workspace)")
     new.add_argument("--detach", action="store_true", help="create without attaching")
+    json_option(new)
     existing = operations.add_parser("attach", help="attach to an existing session")
     existing.add_argument("name", type=identifier)
-    operations.add_parser("list", help="list sessions, even without configuration")
+    json_option(existing)
+    json_option(operations.add_parser("list", help="list sessions, even without configuration"))
     return result
 
 
 def main():
     args = parser().parse_args()
+    command = args.command if args.command != "session" else "session." + args.operation
     try:
+        if args.json and (command in {"setup", "session.attach"} or
+                          (command == "session.create" and not args.detach)):
+            emit(command, error=Error("JSON supports capabilities, doctor, session list and detached creation only", "unsupported_operation"))
+            return 2
         if args.command == "setup":
             setup(args.config)
         elif args.command == "doctor":
             return doctor(args)
+        elif args.command == "capabilities":
+            capabilities(args)
         elif args.operation == "create":
             create(args)
         elif args.operation == "attach":
@@ -243,10 +356,17 @@ def main():
         else:
             list_sessions(args)
     except Error as exc:
-        print(f"overtura: {exc}", file=sys.stderr)
+        if args.json:
+            emit(command, error=exc)
+        else:
+            print(f"overtura: {exc}", file=sys.stderr)
         return 1
     except OSError:
-        print("overtura: operating-system error; check file and executable permissions", file=sys.stderr)
+        message = "operating-system error; check file and executable permissions"
+        if args.json:
+            emit(command, error=Error(message, "os_error"))
+        else:
+            print("overtura: " + message, file=sys.stderr)
         return 1
     return 0
 

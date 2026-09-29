@@ -1,0 +1,1 @@
+{"schema_version":1,"cli_version":"0.2.0","command":"session.list","ok":true,"data":{"sessions":[{"id":"$0","name":"work","windows":1,"attached_clients":1,"attachable":true},{"id":"$1","name":"odd\\tname\\n\"quoted\"","windows":1,"attached_clients":0,"attachable":false}]},"error":null}

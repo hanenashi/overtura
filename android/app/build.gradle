@@ -15,6 +15,11 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
     sourceSets.main.assets.srcDir(rootProject.file('../docs/mobile'))
+    sourceSets.test.resources.srcDir(rootProject.file('../tests/fixtures/protocol-v1'))
 }
 
-dependencies { testImplementation 'junit:junit:4.13.2' }
+dependencies {
+    testImplementation 'junit:junit:4.13.2'
+    // Android supplies org.json at runtime. This dependency is JVM-test-only.
+    testImplementation 'org.json:json:20260719'
+}

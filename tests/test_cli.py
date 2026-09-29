@@ -99,7 +99,7 @@ class CliTests(CliHarness):
         target = self.home / "install space/bin/overtura"
         self.assertTrue(os.access(target, os.X_OK))
         version = subprocess.run([str(target), "--version"], capture_output=True, text=True, env=self.env)
-        self.assertEqual(version.stdout.strip(), "overtura 0.1.0")
+        self.assertEqual(version.stdout.strip(), "overtura 0.2.0")
         self.assertNotEqual(self.install().returncode, 0)
         self.assertEqual(self.install("--upgrade").returncode, 0)
         self.assertEqual(self.install("--uninstall").returncode, 0)
@@ -258,6 +258,155 @@ class TmuxTests(CliHarness):
         self.attach_and_detach()
         after = self.raw_tmux("display-message", "-p", "-t", "=work:", "#{pane_pid}").stdout
         self.assertEqual(before, after)
+
+
+class JsonHarness(CliHarness):
+    def fixture(self, name):
+        return json.loads((ROOT / "tests/fixtures/protocol-v1" / (name + ".json")).read_text())
+
+    def parse(self, result, command, success):
+        self.assertEqual(result.stderr, "")
+        data = json.loads(result.stdout)
+        self.assertEqual(set(data), {"schema_version", "cli_version", "command", "ok", "data", "error"})
+        self.assertEqual(data["schema_version"], 1)
+        self.assertEqual(data["command"], command)
+        self.assertIs(data["ok"], success)
+        self.assertEqual(result.returncode == 0, success)
+        self.assertNotIn(str(self.home), result.stdout)
+        return data
+
+
+class JsonTests(JsonHarness):
+    def test_capabilities_without_dependencies_or_config(self):
+        result = self.run_cli("--json", "capabilities", env=dict(self.env, PATH=""))
+        reply = self.parse(result, "capabilities", True)
+        self.assertEqual(reply, self.fixture("capabilities"))
+        data = reply["data"]
+        self.assertEqual(data["schema_versions"], [1])
+        self.assertIn("session.list", data["json_commands"])
+        self.assertTrue(data["session_create_requires_detach"])
+
+    def test_doctor_failure_is_a_complete_structured_report(self):
+        result = self.run_cli("doctor", "--json", env=dict(self.env, PATH=""))
+        data = self.parse(result, "doctor", False)
+        self.assertEqual(data, self.fixture("doctor-failed"))
+        self.assertEqual(data["error"]["code"], "doctor_failed")
+        checks = {row["id"]: row for row in data["data"]["checks"]}
+        self.assertEqual(checks["tmux"]["status"], "fail")
+        self.assertEqual(checks["config"]["status"], "fail")
+        self.assertEqual(checks["ssh"]["status"], "warn")
+        self.assertFalse(data["data"]["ready"])
+
+    def test_invalid_arguments_never_echo_private_values(self):
+        for command in [("--json", "unknown-private-value"), ("session", "create", "bad;private-value", "--json"), ("--json", "--socket", "bad:private-value", "session", "list")]:
+            result = self.run_cli(*command)
+            data = self.parse(result, None, False)
+            self.assertEqual(result.returncode, 2)
+            self.assertEqual(data["error"]["code"], "invalid_arguments")
+            self.assertNotIn("private-value", result.stdout)
+
+    def test_json_rejects_interactive_and_setup_before_side_effects(self):
+        for command, operation in [("setup", ("setup",)), ("session.attach", ("session", "attach", "test")), ("session.create", ("session", "create", "test"))]:
+            data = self.parse(self.run_cli("--json", *operation), command, False)
+            self.assertEqual(data["error"]["code"], "unsupported_operation")
+        self.assertFalse(self.config.exists())
+
+    def test_missing_tmux_is_not_an_empty_session_list(self):
+        result = self.run_cli("session", "list", "--json", env=dict(self.env, PATH=""))
+        data = self.parse(result, "session.list", False)
+        self.assertIsNone(data["data"])
+        self.assertEqual(data, self.fixture("dependency-error"))
+        self.assertEqual(data["error"]["code"], "dependency_missing")
+
+    def test_tmux_error_is_not_empty_or_raw_stderr(self):
+        fake = self.home / "tmux"
+        fake.write_text("#!/bin/sh\nprintf 'private-test-value: Permission denied' >&2\nexit 1\n")
+        fake.chmod(0o755)
+        result = self.run_cli("--json", "session", "list", env=dict(self.env, PATH=str(self.home)))
+        data = self.parse(result, "session.list", False)
+        self.assertEqual(data["error"]["code"], "tmux_failure")
+        self.assertNotIn("private-test-value", result.stdout)
+
+    def test_tmux_timeout_is_a_structured_error(self):
+        fake = self.home / "tmux"
+        fake.write_text("#!/bin/sh\nexec /bin/sleep 20\n")
+        fake.chmod(0o755)
+        reply = self.parse(self.run_cli("--json", "session", "list", env=dict(self.env, PATH=str(self.home))), "session.list", False)
+        self.assertEqual(reply["error"]["code"], "tmux_timeout")
+
+    def test_invalid_tmux_record_is_a_failure(self):
+        fake = self.home / "tmux"
+        for record in ["bad|1|0", "$0|0|0", "$0|1|-1", "$0|1|0|extra"]:
+            fake.write_text("#!/bin/sh\nprintf '%s\\n' '" + record + "'\n")
+            fake.chmod(0o755)
+            reply = self.parse(self.run_cli("--json", "session", "list", env=dict(self.env, PATH=str(self.home))), "session.list", False)
+            self.assertEqual(reply["error"]["code"], "tmux_failure")
+
+    def test_session_disappearing_during_listing_is_omitted(self):
+        fake = self.home / "tmux"
+        fake.write_text("#!/bin/sh\nif [ \"$6\" = list-sessions ]; then printf '$0|1|0\\n'; else printf \"can't find session: private-value\\n\" >&2; exit 1; fi\n")
+        fake.chmod(0o755)
+        reply = self.parse(self.run_cli("--json", "session", "list", env=dict(self.env, PATH=str(self.home))), "session.list", True)
+        self.assertEqual(reply["data"], {"sessions": []})
+
+
+@unittest.skipUnless(shutil.which("tmux"), "real tmux required")
+class JsonTmuxTests(JsonHarness):
+    def setUp(self):
+        super().setUp()
+        self.addCleanup(lambda: subprocess.run(["tmux", "-L", self.socket, "kill-server"], env=self.env, capture_output=True))
+
+    def test_empty_sessions_are_successful_without_config(self):
+        data = self.parse(self.run_cli("--json", "session", "list"), "session.list", True)
+        self.assertEqual(data, self.fixture("sessions-empty"))
+
+    def test_create_list_duplicate_and_unusual_names(self):
+        self.configure()
+        created = self.parse(self.run_cli("session", "create", "work", "--detach", "--json"), "session.create", True)
+        self.assertRegex(created["data"]["session"]["id"], r"^\$\d+$")
+        duplicate = self.parse(self.run_cli("--json", "session", "create", "work", "--detach"), "session.create", False)
+        self.assertEqual(duplicate["error"]["code"], "session_exists")
+        unusual = 'odd\tname\n"quoted"'
+        displayed = 'odd\\tname\\n"quoted"'
+        subprocess.run(["tmux", "-L", self.socket, "new-session", "-d", "-s", unusual, "/bin/sh"], env=self.env, check=True)
+        listing = self.parse(self.run_cli("session", "--json", "list"), "session.list", True)
+        sessions = {s["name"]: s for s in listing["data"]["sessions"]}
+        self.assertIn(displayed, sessions)
+        self.assertFalse(sessions[displayed]["attachable"])
+        self.assertTrue(sessions["work"]["attachable"])
+        self.assertEqual(sessions["work"]["attached_clients"], 0)
+        self.assertEqual(sessions["work"]["windows"], 1)
+        self.assertEqual(sessions["work"]["id"], created["data"]["session"]["id"])
+        expected = self.fixture("sessions")
+        expected["data"]["sessions"][0]["attached_clients"] = 0
+        listing["data"]["sessions"].sort(key=lambda row: row["id"])
+        self.assertEqual(listing, expected)
+
+    def test_healthy_doctor_matches_shared_fixture(self):
+        self.configure()
+        reply = self.parse(self.run_cli("--json", "doctor"), "doctor", True)
+        expected = self.fixture("doctor-ok")
+        if not shutil.which("ssh"):
+            expected["data"]["checks"][2].update(status="warn", message="SSH client missing (optional for local sessions)")
+        self.assertEqual(reply, expected)
+
+    def test_unicode_and_delimiters_in_native_tmux_names(self):
+        for name in ["日本語", "a|b", r"a\b", "a b"]:
+            result = subprocess.run(["tmux", "-u", "-L", self.socket, "new-session", "-d", "-s", name, "/bin/sh"],
+                                    env=dict(self.env, LC_ALL="C.UTF-8"), capture_output=True)
+            self.assertEqual(result.returncode, 0)
+        for locale in ["C", "C.UTF-8"]:
+            reply = self.parse(self.run_cli("--json", "session", "list", env=dict(self.env, LC_ALL=locale)), "session.list", True)
+            self.assertEqual({row["name"] for row in reply["data"]["sessions"]}, {"日本語", "a|b", r"a\\b", "a b"})
+            self.assertFalse(any(row["attachable"] for row in reply["data"]["sessions"]))
+
+    def test_doctor_optional_workload_stays_ready_and_private(self):
+        self.configure(command=["missing-agent", "private-command-argument"])
+        data = self.parse(self.run_cli("--json", "doctor"), "doctor", True)
+        self.assertTrue(data["data"]["ready"])
+        self.assertIsNone(data["error"])
+        self.assertNotIn("private-command-argument", json.dumps(data))
+        self.assertIn("warn", [check["status"] for check in data["data"]["checks"]])
 
 
 if __name__ == "__main__":
