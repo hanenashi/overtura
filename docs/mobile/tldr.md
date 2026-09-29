@@ -16,4 +16,4 @@ Closing the phone terminal or losing the SSH connection leaves the host session 
 
 ## You are in control
 
-This first app previews commands, copies them, and opens Termux. Paste and press Enter there. Passwords, keys and terminal output stay in Termux.
+The app previews commands, copies them, and opens Termux. Paste and press Enter there. Optional live Doctor and Sessions checks run only when you tap them and grant Termux permission. Passwords, keys and terminal output stay in Termux.

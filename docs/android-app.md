@@ -13,11 +13,10 @@ commands can evolve together.
 - Commands for host diagnostics, listing sessions, creating a shell, and attaching.
 - An explicit command preview with copy and open-Termux actions.
 
-The initial handoff copies the chosen command and opens Termux. The user pastes
-and runs it. This is deliberate: the first app requires no SSH keys, Internet
-permission, Termux execution permission, account login, or background service.
-It does not inspect terminal output or claim that a host is healthy. Diagnostics
-and session lists appear in the real terminal.
+The original handoff copies the chosen command and opens Termux. The user pastes
+and runs it. This path needs no SSH keys in the app, Internet permission, Termux
+execution permission, account login, or background service. It does not inspect
+terminal output; diagnostics and session lists appear in the real terminal.
 
 ## Live read-only queries
 
@@ -29,12 +28,18 @@ bounded, validated and labelled when stale. Create and attach keep the manual
 Termux handoff. The Install page now covers a fresh Pixel's apps, SSH tools,
 key, alias and host preparation.
 
-## Next milestone
+## Pixel verification and next milestone
 
-Verify the new transport on a Pixel, including permission denial, Termux setup,
-successful and failed host replies, an older CLI, timeouts, callback delivery,
-and Activity lifecycle changes. Test a fresh install on another Pixel after a
-verified APK is published. This build has only local JVM/lint/build validation.
+The 0.2.0 debug APK has passed an initial Pixel smoke test: the user granted
+Termux command permission, enabled external commands in Termux, received a
+healthy live Doctor report and an existing session list, saw the expected SSH
+connection error for an unreachable alias, and recovered by restoring the alias.
+Manual Termux handoff and the host's JSON Doctor command also worked. This
+verifies successful and connection-error callback delivery on that device.
+
+Next, test permission denial, host check failures, an older CLI, timeouts,
+cancellation, and Activity lifecycle changes. A fresh install on another Pixel
+is also pending. The APK has not been published as a release asset.
 
 Embedded SSH and a terminal are later choices, not prerequisites for this app.
 Credentials should remain in Termux until there is a reason to take ownership

@@ -167,11 +167,12 @@ For fresh Debian installation and real SSH reconnect tests, use the
 [disposable Podman lab](tests/lab/README.md).
 
 See [the initial architecture note](docs/architecture.md) and
-[the original battle plan](battleplan.md). Browser, VNC, Android/ADB, clipboard,
-boot services and additional platforms remain future work.
+[the original battle plan](battleplan.md). Browser, VNC, Android/ADB automation,
+clipboard integration, boot services and additional platforms remain future work.
 
 The [Pixel companion app](android/README.md) provides offline [TL;DR](docs/mobile/tldr.md),
 [FAQ](docs/mobile/faq.md), [installation guidance](docs/mobile/install.md), and
-session commands to copy into Termux. The current source also adds opt-in live
-Doctor and session-list queries. See its [scope and next steps](docs/android-app.md).
+session commands to copy into Termux. The 0.2.0 debug app adds opt-in live
+Doctor and session-list queries, initially smoke-tested on a Pixel. See its
+[scope and remaining checks](docs/android-app.md).
 Android device automation remains separate from this companion app.

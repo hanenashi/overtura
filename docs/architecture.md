@@ -61,5 +61,7 @@ network connection remain separate checks. A container shares its host kernel;
 killing an SSH client does not reproduce every network failure mode.
 
 The [v1 JSON boundary](protocol-v1.md) adds machine-readable diagnostics and
-session metadata to the same CLI. Android consumer/state code is prepared;
-Termux callback transport and live status UI remain a separate milestone.
+session metadata to the same CLI. Android consumer/state code and opt-in Termux
+callback transport now provide live Doctor and Sessions refreshes; the first
+Pixel smoke test passed. Further transport edge cases and a second-device fresh
+install remain separate verification work.

@@ -6,7 +6,7 @@ On your Debian host. The Pixel is the control surface. You need a reachable host
 
 ## Is this app an SSH client?
 
-Not yet. It prepares commands and opens Termux. Review the command, paste it into Termux and press Enter. No command runs just because you open this app.
+No. Termux runs SSH. For create and attach, review the prepared command, open Termux, paste it and press Enter. If you enable live checks, tapping Check host now or Refresh live list runs a read-only SSH query through Termux. Opening the app alone runs no command.
 
 ## Where are my SSH keys?
 

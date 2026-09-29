@@ -45,9 +45,10 @@ session, detach with Ctrl+b then d, and use Reattach to return.
 
 Live read-only checks are optional. Grant OverturaApp "Run commands in Termux"
 in Android app permissions. In Termux set `allow-external-apps=true` in
-`~/.termux/termux.properties` and restart Termux. Then tap Check host now or
-Refresh live list. Only grant this permission to apps you trust: enabled apps
-can run commands in Termux. SSH keys remain in Termux.
+`~/.termux/termux.properties` and run `termux-reload-settings` (or restart
+Termux). Then tap Check host now or Refresh live list. Only grant this
+permission to apps you trust: enabled apps can run commands in Termux. SSH
+keys remain in Termux.
 
 If a live check fails, use the manual command to diagnose SSH or Termux setup.
 Older host CLI releases do not provide JSON; upgrade the host CLI for live

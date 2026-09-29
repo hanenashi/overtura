@@ -1,10 +1,8 @@
 # CLI JSON protocol v1
 
 CLI 0.2.0 adds an opt-in machine interface. Ordinary terminal commands retain
-human-readable output. This phase supplies the protocol, Android reply reader,
-and request-state logic; the app still uses manual copy/open-Termux actions.
-No background transport, live host status, or additional Android permissions
-are enabled by this change.
+human-readable output. The Android app consumes read-only replies through an
+opt-in Termux transport; manual copy/open-Termux actions remain available.
 
 ## Invocation and envelope
 
@@ -141,8 +139,9 @@ types. It accepts schema 1, limits responses to 256 KiB and nesting to 32 levels
 and rejects banners, trailing output, missing fields, mismatched commands,
 inconsistent readiness, duplicate IDs, and unsafe attachable names. Unknown
 fields are ignored. JVM tests use a test-only org.json dependency; Android's
-platform decoder still needs device verification. This is a schema validator,
-not a general-purpose strict JSON syntax validator.
+platform decoder has parsed successful Doctor and Sessions replies in an
+initial Pixel smoke test. This is a schema validator, not a general-purpose
+strict JSON syntax validator.
 
 SSH exit 255 becomes a connection error; 126/127 indicate an unavailable CLI.
 An empty exit-2 reply suggests an older CLI. Other malformed output gets a
@@ -166,17 +165,23 @@ metadata and the 256 KiB parser limit prevent partial replies from appearing
 as complete data. Callbacks are not persisted across app process termination.
 Manual copy/open remains available.
 
-Pixel testing is still needed for success, failed checks, unavailable hosts,
-old CLIs, denied permission, timeouts, cancellation and Android lifecycle changes.
+The Pixel smoke test covered successful Doctor and Sessions replies, an
+unreachable SSH alias, and recovery after restoring the alias. Failed host
+checks, old CLIs, denied permission, timeouts, cancellation and Android
+lifecycle changes still need device testing.
 
-## Verification for this phase
+## Verification history
 
 - 31 Python CLI/protocol tests passed locally and in the disposable Debian 13 lab.
 - Lab installation, successful and failed JSON replies over SSH, and abrupt SSH
   loss followed by reattachment to the same shell process passed.
 - 17 Android JVM tests passed; Android lint reported no issues; debug APK assembly
-  passed. No ADB, emulator, phone installation or on-device checks ran in this phase.
+  passed. That protocol-only phase had no ADB, emulator or on-device checks.
 
-The subsequent Termux transport and onboarding phase is covered by Android JVM
-tests, lint and a debug build. Android permission and callback delivery remain
-pending device verification.
+The subsequent Termux transport and onboarding phase passed Android JVM tests,
+lint and a debug build. Its 0.2.0 debug APK was installed on a Pixel running
+Android 17. The user granted Termux command permission and enabled external
+commands in Termux. Live Doctor and Sessions queries succeeded; an unreachable
+alias produced the expected connection error, and restoring the alias restored
+the session list. This is an initial on-device smoke test, not full coverage of
+the remaining cases above.

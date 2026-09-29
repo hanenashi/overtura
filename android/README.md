@@ -14,8 +14,8 @@ tapped. They run SSH in the background and show validated JSON results with
 freshness and failure states. The Android app never reads SSH keys or takes
 ownership of host verification. Termux's `com.termux.permission.RUN_COMMAND`
 permission and `allow-external-apps=true` setting are both required; manual
-copy/open actions remain available. The current source has not yet passed
-on-device validation of this new transport.
+copy/open actions remain available. Live Doctor and Sessions refreshes have
+passed an initial Pixel smoke test; see the coverage and gaps below.
 
 ## Build
 
@@ -57,8 +57,13 @@ outside the repository.
 
 The original manual-command preview was verified on an Android 15 emulator and
 a Pixel running Android 17. The emulator covered the missing-Termux fallback;
-the Pixel covered the real app handoff. The new live-query build has not yet
-been installed or tested on a device.
+the Pixel covered the real app handoff. The 0.2.0 debug APK was then installed
+on the Pixel running Android 17. After granting Termux's command permission and
+enabling `allow-external-apps=true`, live Doctor showed a ready host and live
+Sessions listed an existing session. Changing the SSH alias to a deliberately
+unreachable one showed the connection error; restoring the working alias and
+refreshing showed the session again. The host CLI was upgraded to 0.2.0 and
+its JSON Doctor output was checked separately in Termux.
 
 ## Live query transport
 
@@ -69,6 +74,8 @@ app deadline. Results over 256 KiB or truncated by Termux are rejected.
 The [v1 protocol boundary](../docs/protocol-v1.md) documents response validation.
 Shared fixtures in `tests/fixtures/protocol-v1` run in both Python and JVM tests.
 The JVM org.json dependency is test-only; runtime uses Android's platform decoder.
-Run the build command above for unit tests, lint and APK assembly. Permission,
-callback and lifecycle behavior still need Pixel verification before releasing
-this app build.
+Run the build command above for unit tests, lint and APK assembly. The Pixel
+smoke test confirms permission grant and successful/error callback delivery.
+Permission denial, host check failures, older CLIs, timeouts, cancellation,
+Activity lifecycle changes, and a fresh install on another Pixel remain to be
+tested before a release claim.
