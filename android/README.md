@@ -10,6 +10,9 @@ The Install page starts with getting Termux through F-Droid, opening it once,
 and trying a harmless first command. It then explains phone tools, SSH keys,
 editing aliases in Nano, host setup and the optional live query permission.
 Commands identify whether they belong on the phone or the Debian host.
+Each tab keeps its scroll position while the app stays open, including when
+live results refresh or the user returns from Termux. Android also restores
+the positions when recreating the Activity from saved state.
 
 Live Doctor and Sessions queries use Termux's RUN_COMMAND interface only when
 tapped. They run SSH in the background and show validated JSON results with
@@ -92,3 +95,7 @@ This verifies the assisted setup path, not an unaided beginner walkthrough,
 the F-Droid installation route, a fresh Debian host, or access away from the
 local network. The updated automated smoke script has not been rerun on a
 device. Local validation passed 23 JVM tests, lint and debug APK assembly.
+
+The scroll-position fix was installed on a Pixel and checked after a current-tab
+tap, app resume, tab switch, and live session-list refresh. JVM tests, lint and
+debug APK assembly passed for the fix.

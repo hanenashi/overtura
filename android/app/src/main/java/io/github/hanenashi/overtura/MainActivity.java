@@ -44,8 +44,12 @@ public class MainActivity extends Activity {
     private static final int LINE = Color.rgb(48, 65, 72);
     private LinearLayout root;
     private LinearLayout page;
+    private ScrollView pageScroll;
     private SharedPreferences preferences;
     private int tab;
+    private int renderedTab = -1;
+    private boolean scrollRestored;
+    private final int[] scrollPositions = new int[4];
     private final QueryState doctorState = new QueryState();
     private final QueryState sessionsState = new QueryState();
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -55,12 +59,20 @@ public class MainActivity extends Activity {
         super.onCreate(state);
         preferences = getSharedPreferences("local_host", MODE_PRIVATE);
         tab = state == null ? 0 : state.getInt("tab", 0);
+        if (state != null) {
+            int[] saved = state.getIntArray("scroll_positions");
+            if (saved != null && saved.length == scrollPositions.length) {
+                System.arraycopy(saved, 0, scrollPositions, 0, saved.length);
+            }
+        }
         getWindow().setDecorFitsSystemWindows(false);
         render();
     }
 
     @Override protected void onSaveInstanceState(Bundle state) {
+        rememberScroll();
         state.putInt("tab", tab);
+        state.putIntArray("scroll_positions", scrollPositions);
         super.onSaveInstanceState(state);
     }
 
@@ -142,7 +154,14 @@ public class MainActivity extends Activity {
         add(page, text(subtitle, 16, MUTED, false), 26);
     }
 
+    private void rememberScroll() {
+        if (pageScroll != null && renderedTab >= 0 && scrollRestored) {
+            scrollPositions[renderedTab] = pageScroll.getScrollY();
+        }
+    }
+
     private void render() {
+        rememberScroll();
         root = column();
         root.setBackgroundColor(BG);
         root.setOnApplyWindowInsetsListener((view, insets) -> {
@@ -191,8 +210,19 @@ public class MainActivity extends Activity {
             nav.addView(item, params);
         }
         root.addView(nav);
+        pageScroll = scroll;
+        renderedTab = tab;
+        scrollRestored = false;
         setContentView(root);
         root.requestApplyInsets();
+        int destination = tab;
+        int position = scrollPositions[destination];
+        scroll.post(() -> {
+            if (pageScroll == scroll && renderedTab == destination) {
+                scroll.scrollTo(0, position);
+                scrollRestored = true;
+            }
+        });
     }
 
     private void navigate(int destination) {
