@@ -158,7 +158,7 @@ See [the initial architecture note](docs/architecture.md) and
 [the original battle plan](battleplan.md). Browser, VNC, Android/ADB, clipboard,
 boot services and additional platforms remain future work.
 
-The Pixel companion is planned in [OverturaApp](docs/android-app.md), with shared
-offline [TL;DR](docs/mobile/tldr.md), [FAQ](docs/mobile/faq.md) and
-[installation guidance](docs/mobile/install.md). Android device automation remains
-separate from this companion app.
+The [Pixel companion app](android/README.md) provides offline [TL;DR](docs/mobile/tldr.md),
+[FAQ](docs/mobile/faq.md), [installation guidance](docs/mobile/install.md), and
+session commands to copy into Termux. See its [scope and next steps](docs/android-app.md).
+Android device automation remains separate from this companion app.
