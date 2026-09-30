@@ -93,6 +93,12 @@ that disappear between reads are omitted, and counts may already have changed.
 No pane contents, terminal titles, working directories, or process arguments
 are collected.
 
+The Android Sessions page displays every returned row. For a fresh snapshot it
+offers a manual Termux reattach preview only when `attachable` is true. A stale
+snapshot offers no row actions until refreshed. Choosing a row revalidates its
+name through the ordinary CLI command builder; session IDs are never used as
+shell input. The snapshot may still race with a session exiting before attach.
+
 ### session.create
 
 JSON creation requires `--detach`. It returns

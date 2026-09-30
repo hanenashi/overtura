@@ -175,4 +175,6 @@ The [Pixel companion app](android/README.md) provides offline [TL;DR](docs/mobil
 session commands to copy into Termux. The 0.2.1 preview includes opt-in live
 Doctor and session-list queries and preserves scroll positions. See its
 [scope and remaining checks](docs/android-app.md).
+The current 0.3.0 development source also offers a Termux reattach preview
+from fresh, attachable live session rows.
 Android device automation remains separate from this companion app.

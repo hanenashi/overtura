@@ -175,7 +175,7 @@ public class MainActivity extends Activity {
         TextView brand = text("◉  OVERTURA", 15, INK, true);
         brand.setLetterSpacing(0.12f);
         header.addView(brand, new LinearLayout.LayoutParams(0, -2, 1));
-        TextView edition = text("PIXEL / 0.2.1", 10, GREEN, true);
+        TextView edition = text("PIXEL / 0.3.0-dev", 10, GREEN, true);
         edition.setLetterSpacing(0.08f);
         header.addView(edition);
         root.addView(header);
@@ -277,6 +277,17 @@ public class MainActivity extends Activity {
 
     private void action(String title, String action) {
         try { preview(title, Commands.remote(host(), action, session())); }
+        catch (IllegalArgumentException error) { message("Check your details", error.getMessage()); }
+    }
+
+    private void attachListedSession(ApiReply listed, ApiReply.Session selected) {
+        if (sessionsState.snapshot() != listed ||
+                sessionsState.isStale(SystemClock.elapsedRealtime()) || !selected.attachable) {
+            render();
+            message("Refresh live list", "This session list is out of date. Refresh it before choosing a session.");
+            return;
+        }
+        try { preview("Reattach " + selected.name, Commands.remote(host(), "attach", selected.name)); }
         catch (IllegalArgumentException error) { message("Check your details", error.getMessage()); }
     }
 
@@ -464,11 +475,18 @@ public class MainActivity extends Activity {
         } else if (reply.sessions.isEmpty()) {
             add(box, text("No sessions on this host.", 14, MUTED, false), 0);
         } else {
+            if (stale) add(box, text("Refresh the list to reattach a session.", 14, MUTED, false), 10);
             for (ApiReply.Session session : reply.sessions) {
                 String description = session.name + " · " + session.windows + " window(s) · "
                     + session.attachedClients + " attached";
-                if (!session.attachable) description += " · use tmux for this name";
-                add(box, text(description, 14, INK, false), 9);
+                if (session.attachable && !stale) {
+                    add(box, button("Reattach " + session.name + "  →\n" + session.windows
+                        + " window(s) · " + session.attachedClients + " attached",
+                        false, () -> attachListedSession(reply, session)), 9);
+                } else {
+                    if (!session.attachable) description += " · use tmux for this name";
+                    add(box, text(description, 14, INK, false), 9);
+                }
             }
         }
     }

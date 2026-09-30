@@ -20,6 +20,10 @@ No. Any working SSH route is enough. Tailscale is one option for reaching a host
 
 In tmux, press Ctrl+b, release, then press d. The session continues on the host. Use Reattach in the Sessions page to return.
 
+## Can I choose a session from the live list?
+
+In the 0.3.0 development build, yes. Refresh the list, tap Reattach beside a session, then review and run the command in Termux. If the list is out of date, refresh it again. Some tmux names can only be attached through tmux directly.
+
 ## Does a session survive a reboot?
 
 No. It survives terminal and SSH disconnection, not host reboot or workload exit. Automatic boot and agent transcript resume are future features.

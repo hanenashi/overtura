@@ -22,6 +22,13 @@ permission and `allow-external-apps=true` setting are both required; manual
 copy/open actions remain available. Live Doctor and Sessions refreshes have
 passed an initial Pixel smoke test; see the coverage and gaps below.
 
+The current 0.3.0-dev source lets users tap a fresh, attachable session in the
+live list to preview its exact reattach command, then copy it into Termux.
+Stale rows require a refresh, and names outside the CLI's attachable name rules
+are displayed without a reattach action. The typed session-name field and
+manual command preview remain available. Local JVM tests, lint, and build pass;
+on-device use of the new row control is pending.
+
 ## Build
 
 Install JDK 17 or newer, Android SDK platform 36 and build tools. Set ANDROID_HOME

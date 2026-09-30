@@ -30,6 +30,13 @@ key, alias and host preparation. It starts with an F-Droid download route,
 Termux's first prompt, a harmless practice command, and paste/Enter instructions.
 Nano instructions distinguish SSH configuration text from shell commands.
 
+In the current 0.3.0-dev source, a fresh live Sessions row can preview a
+reattach command when v1 marks its name attachable. The user still chooses
+Copy + Termux and runs the command there. Stale rows ask for a refresh; names
+that v1 marks unattachable remain visible as text. The typed session field and
+manual reattach action are unchanged. Device testing of the new row control is
+pending.
+
 ## Pixel verification and next milestone
 
 The 0.2.0 debug APK has passed an initial Pixel smoke test: the user granted
