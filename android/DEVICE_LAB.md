@@ -12,6 +12,12 @@ paths; a secondary user or work profile cannot provide a fresh Termux lab.
 Use an emulator or spare phone for that part of onboarding. See the official
 [Termux execution environment](https://github.com/termux/termux-packages/wiki/Termux-execution-environment).
 
+If a dedicated supported Pixel becomes available, it is the preferred physical
+environment for full fresh-install walkthroughs. Keep it on trusted Wi-Fi and
+power, then connect ADB when testing; continuous ADB availability is not
+required. Until then, use this lab for app checks and an emulator for fresh
+Termux setup. See [the device-testing idea](../ideas.md#dedicated-android-test-device).
+
 ## Set up
 
 Prerequisites: the Android build tools, ADB paired with the intended phone,

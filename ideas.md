@@ -112,6 +112,22 @@ commands and outputs; Direct mode can expose the primitives more directly.
 This keeps the easy path and expert path from drifting into two different
 installation systems.
 
+## Dedicated Android test device
+
+When a spare supported Pixel becomes available, use it as Overtura's dedicated
+physical test phone. A separate device gives onboarding its own primary Android
+user, Termux installation, SSH files and app permissions, avoiding changes to a
+daily phone. Stock Termux's fixed installation paths make secondary Android
+users and work profiles unsuitable for a fresh Termux environment.
+
+Keep the phone available on trusted Wi-Fi and power, but enable or connect ADB
+when a test needs it rather than treating a permanently open ADB connection as
+a requirement. Pair it with the disposable Debian lab for host-side checks.
+Keep the side-by-side Overtura Lab app on the current phone for quick app checks;
+use an emulator or dedicated phone for a truly fresh Termux install and
+first-run walkthrough. Hardware availability is a future convenience, not a
+prerequisite for Overtura development.
+
 ## Security and recovery principles
 
 - RUN_COMMAND access is powerful. Setup actions should be visible,
