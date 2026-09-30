@@ -60,6 +60,10 @@ adb -s DEVICE shell am start -n io.github.hanenashi.overtura/.MainActivity
 Keep actual device IDs, SDK paths, APKs, screenshots and signing keys out of Git.
 See `docs/android-app.md` for the implementation boundary and next milestones.
 
+For repeatable app tests without clearing the normal app, use the
+[side-by-side phone lab](DEVICE_LAB.md). It shares the existing Termux tools and
+has a dedicated SSH alias into the disposable Debian host.
+
 ## Device smoke test
 
 With the app already installed on a dedicated or available test device:

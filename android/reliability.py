@@ -37,7 +37,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--serial', required=True)
     parser.add_argument('--phone-ssh', required=True, help='Existing SSH alias into this same phone')
+    parser.add_argument("--lab", action="store_true", help="Target the separate Overtura Lab app")
     args = parser.parse_args()
+    package = PACKAGE + (".lab" if args.lab else "")
     adb = ['adb', '-s', args.serial]
     remote = ['ssh', '-o', 'BatchMode=yes', args.phone_ssh, 'sh -s']
     suffix = uuid.uuid4().hex[:12]
@@ -55,7 +57,7 @@ def main():
         # Check before dumping so we cannot accidentally capture a terminal.
         active = shell('dumpsys', 'activity', 'activities')
         resumed = '\n'.join(s for s in active.splitlines() if 'ResumedActivity' in s)
-        assert PACKAGE in resumed or 'permissioncontroller' in resumed, 'Unexpected foreground app'
+        assert package in resumed or 'permissioncontroller' in resumed, 'Unexpected foreground app'
         shell('uiautomator', 'dump', '/data/local/tmp/' + alias + '.xml')
         xml = shell('cat', '/data/local/tmp/' + alias + '.xml')
         return list(ET.fromstring(xml).iter('node'))
@@ -86,7 +88,7 @@ def main():
         raise AssertionError('Missing expected state: ' + label)
 
     def launch():
-        shell('am', 'start', '-W', '-n', PACKAGE + '/.MainActivity')
+        shell('am', 'start', '-W', '-n', package + '/io.github.hanenashi.overtura.MainActivity')
         time.sleep(.4)
 
     def scroll_to(label):
@@ -100,15 +102,15 @@ def main():
             shell('input','swipe',str((x1+x2)//2),str(y2-80),str((x1+x2)//2),str(y1+100),'250')
         raise AssertionError('Cannot scroll to ' + label)
 
-    permission_dump = shell('dumpsys', 'package', PACKAGE)
+    permission_dump = shell('dumpsys', 'package', package)
     granted = bool(re.search(re.escape(PERMISSION) + r': granted=true', permission_dump))
     permission_line = next(s for s in permission_dump.splitlines() if PERMISSION + ': granted=' in s)
     flags = [f for f in ('user-set','user-fixed') if f.upper().replace('-','_') in permission_line]
-    shell('am', 'force-stop', PACKAGE)
-    original_prefs = run(adb + ['exec-out', 'run-as', PACKAGE, 'cat', PREFS])
+    shell('am', 'force-stop', package)
+    original_prefs = run(adb + ['exec-out', 'run-as', package, 'cat', PREFS])
     prefs_backup = 'files/' + alias + '-preferences.xml'
-    shell('run-as', PACKAGE, 'mkdir', '-p', 'files')
-    shell('run-as', PACKAGE, 'cp', '-p', PREFS, prefs_backup)
+    shell('run-as', package, 'mkdir', '-p', 'files')
+    shell('run-as', package, 'cp', '-p', PREFS, prefs_backup)
     # This runner intentionally requires an existing prefs file; no first-install mutation.
     reverse_added = False
     server = None
@@ -202,10 +204,10 @@ if [ -e "{backup}" ]; then cat "{backup}" >> "$HOME/.ssh/config"; fi
             host=next((n for n in prefs if n.get('name')=='host'),None)
             if host is None: host=ET.SubElement(prefs,'string',name='host')
             host.text=alias
-            run(adb+['shell','run-as',PACKAGE,'sh','-c',shlex.quote('cat > '+PREFS)],
+            run(adb+['shell','run-as',package,'sh','-c',shlex.quote('cat > '+PREFS)],
                 input=ET.tostring(prefs,encoding='utf-8',xml_declaration=True))
-            shell('pm','revoke',PACKAGE,PERMISSION)
-            shell('pm','clear-permission-flags',PACKAGE,PERMISSION,'user-set','user-fixed')
+            shell('pm','revoke',package,PERMISSION)
+            shell('pm','clear-permission-flags',package,PERMISSION,'user-set','user-fixed')
             launch(); tap('Install'); tap_node(scroll_to('Check host now'))
             ns=screen()
             deny=next(n for n in ns if n.get('resource-id','').endswith('/permission_deny_button'))
@@ -215,7 +217,7 @@ if [ -e "{backup}" ]; then cat "{backup}" >> "$HOME/.ssh/config"; fi
             tap('Sessions'); tap_node(scroll_to('List sessions'))
             wait_text('List host sessions'); tap('Cancel'); tap('Install')
             print('PASS: denied permission, no SSH request, manual fallback',flush=True)
-            shell('pm','grant',PACKAGE,PERMISSION)
+            shell('pm','grant',package,PERMISSION)
 
             for mode,expected in (
                 ('failed','Host needs attention'),
@@ -241,11 +243,11 @@ if [ -e "{backup}" ]; then cat "{backup}" >> "$HOME/.ssh/config"; fi
             print('PASS: background cancellation ignores late callback',flush=True)
 
             before=point(find('Check host now'))[1]
-            old_pid=shell('pidof',PACKAGE)
+            old_pid=shell('pidof',package)
             shell('input','keyevent','KEYCODE_HOME'); time.sleep(.6)
-            shell('am','kill',PACKAGE); time.sleep(.5)
+            shell('am','kill',package); time.sleep(.5)
             launch()
-            assert shell('pidof',PACKAGE)!=old_pid, 'App process did not restart'
+            assert shell('pidof',package)!=old_pid, 'App process did not restart'
             assert abs(point(find('Check host now'))[1]-before)<20, 'Process recreation reset scroll'
             assert find('Updated just now') is None
             print('PASS: process recreation restores tab/scroll without fresh host claims',flush=True)
@@ -259,16 +261,16 @@ if [ -e "{backup}" ]; then cat "{backup}" >> "$HOME/.ssh/config"; fi
                     cleanup_errors.append(label)
 
             def restore_app():
-                shell('am', 'force-stop', PACKAGE)
-                shell('run-as', PACKAGE, 'cp', '-p', prefs_backup, PREFS)
-                assert run(adb + ['exec-out', 'run-as', PACKAGE, 'cat', PREFS]) == original_prefs
-                shell('run-as', PACKAGE, 'rm', prefs_backup)
+                shell('am', 'force-stop', package)
+                shell('run-as', package, 'cp', '-p', prefs_backup, PREFS)
+                assert run(adb + ['exec-out', 'run-as', package, 'cat', PREFS]) == original_prefs
+                shell('run-as', package, 'rm', prefs_backup)
 
             def restore_permission():
-                shell('pm', 'grant' if granted else 'revoke', PACKAGE, PERMISSION)
-                shell('pm', 'clear-permission-flags', PACKAGE, PERMISSION, 'user-set', 'user-fixed')
+                shell('pm', 'grant' if granted else 'revoke', package, PERMISSION)
+                shell('pm', 'clear-permission-flags', package, PERMISSION, 'user-set', 'user-fixed')
                 if flags:
-                    shell('pm', 'set-permission-flags', PACKAGE, PERMISSION, *flags)
+                    shell('pm', 'set-permission-flags', package, PERMISSION, *flags)
 
             def restore_phone():
                 phone(f'''set -eu

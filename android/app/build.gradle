@@ -9,6 +9,16 @@ android {
         targetSdk 36
         versionCode 4
         versionName '0.3.0-dev'
+        manifestPlaceholders = [appLabel: 'Overtura']
+    }
+    buildTypes {
+        lab {
+            initWith debug
+            applicationIdSuffix '.lab'
+            versionNameSuffix '-lab'
+            manifestPlaceholders = [appLabel: 'Overtura Lab']
+            matchingFallbacks = ['debug']
+        }
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17

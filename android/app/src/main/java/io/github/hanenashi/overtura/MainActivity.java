@@ -180,7 +180,8 @@ public class MainActivity extends Activity {
         LinearLayout header = new LinearLayout(this);
         header.setGravity(Gravity.CENTER_VERTICAL);
         header.setPadding(dp(24), dp(18), dp(24), dp(16));
-        TextView brand = text("◉  OVERTURA", 15, INK, true);
+        TextView brand = text("◉  " + getApplicationInfo().loadLabel(getPackageManager())
+            .toString().toUpperCase(Locale.ROOT), 15, INK, true);
         brand.setLetterSpacing(0.12f);
         header.addView(brand, new LinearLayout.LayoutParams(0, -2, 1));
         TextView edition = text("PIXEL / 0.3.0-dev", 10, GREEN, true);

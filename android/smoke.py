@@ -16,7 +16,9 @@ PACKAGE = "io.github.hanenashi.overtura"
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--serial", required=True, help="ADB device; never select a device implicitly")
+    parser.add_argument("--lab", action="store_true", help="Target the separate Overtura Lab app")
     args = parser.parse_args()
+    package = PACKAGE + (".lab" if args.lab else "")
     adb = ["adb", "-s", args.serial]
     evidence = Path(tempfile.mkdtemp(prefix="overtura-app-"))
 
@@ -56,13 +58,13 @@ def main():
         shell("input", "keyevent", "KEYCODE_BACK")
 
     def launch():
-        shell("am", "start", "-W", "-n", PACKAGE + "/.MainActivity")
+        shell("am", "start", "-W", "-n", package + "/io.github.hanenashi.overtura.MainActivity")
 
     def screenshot(name):
         with (evidence / name).open("wb") as stream:
             subprocess.run(adb + ["exec-out", "screencap", "-p"], stdout=stream, check=True, timeout=15)
 
-    shell("am", "force-stop", PACKAGE)
+    shell("am", "force-stop", package)
     launch()
     find("Your work,\nwithin reach.")
     screenshot("start.png")
@@ -101,7 +103,7 @@ def main():
             find("Termux is needed")
             tap("OK")
             print("PASS: missing-Termux fallback")
-        shell("am", "force-stop", PACKAGE)
+        shell("am", "force-stop", package)
         launch()
         tap("Sessions")
         assert find("SSH alias in Termux", "content-desc").get("text") == "my-node"
@@ -114,7 +116,7 @@ def main():
         screenshot("faq.png")
         print("PASS: navigation, validation, command preview and saved settings")
     finally:
-        shell("am", "force-stop", PACKAGE)
+        shell("am", "force-stop", package)
         launch()
         tap("Sessions")
         edit("SSH alias in Termux", old_host)
