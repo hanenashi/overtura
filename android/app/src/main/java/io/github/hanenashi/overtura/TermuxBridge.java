@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/** Termux RUN_COMMAND transport for explicit, read-only background queries. */
+/** Termux RUN_COMMAND transport for explicit, read-only background checks. */
 final class TermuxBridge {
     private static final String TERMUX = "com.termux";
     private static final String SERVICE = "com.termux.app.RunCommandService";
@@ -33,7 +33,15 @@ final class TermuxBridge {
     static void start(MainActivity activity, String host, String operation, long token) {
         // Termux expands $PREFIX only in RUN_COMMAND_PATH. Its own shell then
         // resolves timeout and ssh from the Termux PATH on any Android user.
-        String[] argv = {"-c", Commands.termuxShellQuery(host, operation)};
+        startScript(activity, operation, token, Commands.termuxShellQuery(host, operation));
+    }
+
+    static void startPhoneTools(MainActivity activity, long token) {
+        startScript(activity, "phone.tools", token, PhoneTools.COMMAND);
+    }
+
+    private static void startScript(MainActivity activity, String operation, long token, String script) {
+        String[] argv = {"-c", script};
 
         String id = UUID.randomUUID().toString();
         Intent callback = new Intent(activity, TermuxResultReceiver.class)

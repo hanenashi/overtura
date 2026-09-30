@@ -37,6 +37,13 @@ that v1 marks unattachable remain visible as text. The typed session field and
 manual reattach action are unchanged. Device testing of the new row control is
 pending.
 
+The first guided-readiness step adds an explicit local Termux tool check on the
+Install page. It reports whether SSH, `timeout`, and Nano are available without
+reading keys or contacting the host. It uses the same permission boundary as
+live queries, while the existing copy/paste instructions remain usable without
+that permission. The result is transient and needs a new check after leaving
+the app. Device verification is pending.
+
 ## Pixel verification and next milestone
 
 The 0.2.0 debug APK has passed an initial Pixel smoke test: the user granted

@@ -29,6 +29,13 @@ are displayed without a reattach action. The typed session-name field and
 manual command preview remain available. Local JVM tests, lint, and build pass;
 on-device use of the new row control is pending.
 
+The Install page also has an explicit, read-only phone-tool check. When tapped,
+it asks Termux whether `ssh`, `timeout`, and `nano` are available and shows any
+missing tool beside the existing manual install command. It needs Termux's
+RUN_COMMAND permission and external-app setting; it does not inspect SSH keys
+or connect to a host. Manual setup remains available. Device verification of
+this new check is pending.
+
 ## Build
 
 Install JDK 17 or newer, Android SDK platform 36 and build tools. Set ANDROID_HOME

@@ -56,6 +56,12 @@ it does not connect to a host yet. If downloads fail, check your internet
 connection and try again. For persistent mirror errors, use termux-change-repo
 to choose another offered main repository mirror, then retry.
 
+In the 0.3.0 development app, Check phone tools on this page can also report
+whether SSH, `timeout`, and Nano are installed. This optional, read-only check
+requires Overtura's Run commands in Termux permission and
+`allow-external-apps=true` in Termux. It does not read SSH keys or contact the
+host. If you prefer, use the manual commands above.
+
 ## 4. Get the host ready
 
 Ask the host owner for its reachable address, your username, its SSH host-key

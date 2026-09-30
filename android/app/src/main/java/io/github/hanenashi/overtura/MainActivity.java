@@ -52,6 +52,10 @@ public class MainActivity extends Activity {
     private final int[] scrollPositions = new int[4];
     private final QueryState doctorState = new QueryState();
     private final QueryState sessionsState = new QueryState();
+    private PhoneTools phoneTools;
+    private boolean toolsChecking;
+    private String toolsError;
+    private long toolsToken;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private static final String RUN_COMMAND = "com.termux.permission.RUN_COMMAND";
 
@@ -81,6 +85,10 @@ public class MainActivity extends Activity {
         TermuxBridge.forget(this);
         doctorState.cancel();
         sessionsState.cancel();
+        toolsChecking = false;
+        phoneTools = null;
+        toolsError = null;
+        toolsToken++;
         super.onStop();
     }
 
@@ -319,6 +327,31 @@ public class MainActivity extends Activity {
         add(packages, button("Install phone tools", true, () -> preview("Install tools in local Termux", "pkg update && pkg install openssh coreutils nano")), 10);
         add(packages, button("Check SSH is installed", false, () -> preview("Check phone tools", "ssh -V", "Run in local Termux. A line starting with OpenSSH means the SSH client is installed. This does not connect to a host yet.")), 0);
 
+        LinearLayout readiness = card();
+        label(readiness, "PHONE READINESS");
+        add(readiness, text("Check your local tools", 20, INK, true), 10);
+        add(readiness, text("Tap to ask Termux whether SSH, timeout and Nano are available. This check stays on your phone and does not read keys or connect to a host. To enable it, see Enable Termux queries below.", 14, MUTED, false), 12);
+        boolean termuxFound = getPackageManager().getLaunchIntentForPackage("com.termux") != null;
+        add(readiness, text(termuxFound ? "✓ Termux app found" : "Next: install and open Termux", 14,
+            termuxFound ? GREEN : MUTED, false), 7);
+        if (termuxFound) {
+            boolean allowed = checkSelfPermission(RUN_COMMAND) == PackageManager.PERMISSION_GRANTED;
+            add(readiness, text(allowed ? "✓ Run commands permission granted"
+                : "Next: grant Run commands permission when prompted (optional)", 14,
+                allowed ? GREEN : MUTED, false), 7);
+        }
+        if (toolsChecking) add(readiness, text("Checking phone tools…", 14, GREEN, false), 7);
+        else if (toolsError != null) add(readiness, text(toolsError, 14, MUTED, false), 7);
+        else if (phoneTools != null) {
+            toolLine(readiness, "SSH", phoneTools.ssh);
+            toolLine(readiness, "timeout", phoneTools.timeout);
+            toolLine(readiness, "Nano", phoneTools.nano);
+            if (!phoneTools.ssh || !phoneTools.timeout || !phoneTools.nano)
+                add(readiness, text("Use Install phone tools above for anything missing, then check again.", 14, MUTED, false), 7);
+            else add(readiness, text("Phone tools ready. Continue with your SSH key and host connection below.", 14, GREEN, false), 7);
+        } else add(readiness, text("Tool check not run yet.", 14, MUTED, false), 7);
+        add(readiness, button("Check phone tools", false, this::checkPhoneTools), 0);
+
         LinearLayout phone = card();
         label(phone, "ON THIS PIXEL · TERMUX");
         add(phone, text("4 · Prepare your SSH connection", 21, INK, true), 10);
@@ -392,6 +425,41 @@ public class MainActivity extends Activity {
         return operation.equals("doctor") ? doctorState : sessionsState;
     }
 
+    private void toolLine(LinearLayout box, String name, boolean available) {
+        add(box, text((available ? "✓ " : "Missing: ") + name, 14,
+            available ? GREEN : MUTED, false), 7);
+    }
+
+    private void checkPhoneTools() {
+        if (getPackageManager().getLaunchIntentForPackage("com.termux") == null) {
+            message("Install Termux first", "Install and open Termux once, then return here.");
+            return;
+        }
+        if (checkSelfPermission(RUN_COMMAND) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{RUN_COMMAND}, 43);
+            return;
+        }
+        if (toolsChecking) TermuxBridge.forget(this, "phone.tools", toolsToken);
+        long token = ++toolsToken;
+        phoneTools = null;
+        toolsError = null;
+        toolsChecking = true;
+        try { TermuxBridge.startPhoneTools(this, token); }
+        catch (RuntimeException error) {
+            toolsChecking = false;
+            toolsError = "Termux could not run the check. Confirm allow-external-apps=true, or use the manual commands above.";
+        }
+        render();
+        handler.postDelayed(() -> {
+            if (toolsChecking && toolsToken == token) {
+                toolsChecking = false;
+                toolsError = "Tool check timed out. Try again or use the manual commands above.";
+                TermuxBridge.forget(this, "phone.tools", token);
+                if (tab == 1) render();
+            }
+        }, QueryState.TIMEOUT_MS);
+    }
+
     private void query(String operation) {
         String alias;
         try { alias = Commands.alias(host()); }
@@ -422,13 +490,18 @@ public class MainActivity extends Activity {
     @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grants) {
         super.onRequestPermissionsResult(requestCode, permissions, grants);
         if (requestCode == 43) {
+            if (tab == 1) render();
             message(grants.length > 0 && grants[0] == PackageManager.PERMISSION_GRANTED
                     ? "Permission ready" : "Permission needed",
-                "Run commands in Termux permission is needed for live checks. You can always use Copy + Termux. See the Install page for Termux's allow-external-apps setting.");
+                "Run commands in Termux permission is needed for app-based checks. You can always use Copy + Termux. See the Install page for Termux's allow-external-apps setting.");
         }
     }
 
     void onTermuxResult(String operation, long token, Intent intent) {
+        if (operation.equals("phone.tools")) {
+            onPhoneToolsResult(token, intent);
+            return;
+        }
         QueryState state = stateFor(operation);
         long now = SystemClock.elapsedRealtime();
         try {
@@ -448,6 +521,26 @@ public class MainActivity extends Activity {
                 if (tab == (operation.equals("doctor") ? 1 : 2)) render();
             }, QueryState.FRESH_MS);
         }
+    }
+
+    private void onPhoneToolsResult(long token, Intent intent) {
+        if (!toolsChecking || token != toolsToken) return;
+        toolsChecking = false;
+        try {
+            Bundle result = intent.getBundleExtra("result");
+            TermuxReply reply = result == null ? TermuxReply.from(false, 0, false, 0, null, null)
+                : TermuxReply.from(result.containsKey("err"), result.getInt("err"),
+                    result.containsKey("exitCode"), result.getInt("exitCode"),
+                    result.getString("stdout"), result.get("stdout_original_length"));
+            if (reply.failure != null) {
+                toolsError = "Termux could not return the tool check. Confirm allow-external-apps=true, or use the manual commands above.";
+            } else {
+                phoneTools = PhoneTools.parse(reply.exitCode, reply.stdout);
+            }
+        } catch (RuntimeException error) {
+            toolsError = "The tool check could not be read. Try again or use the manual commands above.";
+        }
+        if (tab == 1) render();
     }
 
     private void renderQuery(LinearLayout box, QueryState state, String operation) {
