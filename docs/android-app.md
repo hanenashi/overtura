@@ -34,15 +34,16 @@ In the current 0.3.0-dev source, a fresh live Sessions row can preview a
 reattach command when v1 marks its name attachable. The user still chooses
 Copy + Termux and runs the command there. Stale rows ask for a refresh; names
 that v1 marks unattachable remain visible as text. The typed session field and
-manual reattach action are unchanged. Device testing of the new row control is
-pending.
+manual reattach action are unchanged. The new row control passed a live test
+on one Pixel for a fresh row and the stale-list transition.
 
 The first guided-readiness step adds an explicit local Termux tool check on the
 Install page. It reports whether SSH, `timeout`, and Nano are available without
 reading keys or contacting the host. It uses the same permission boundary as
 live queries, while the existing copy/paste instructions remain usable without
 that permission. The result is transient and needs a new check after leaving
-the app. Device verification is pending.
+the app. On a Pixel, the live check reported all three tools available;
+missing-tool handling remains covered by local parser tests only.
 
 ## Pixel verification and next milestone
 

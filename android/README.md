@@ -27,14 +27,15 @@ live list to preview its exact reattach command, then copy it into Termux.
 Stale rows require a refresh, and names outside the CLI's attachable name rules
 are displayed without a reattach action. The typed session-name field and
 manual command preview remain available. Local JVM tests, lint, and build pass;
-on-device use of the new row control is pending.
+the new row control also passed a live Pixel check: a fresh row opened the
+manual preview, and its action disappeared once the list became stale.
 
 The Install page also has an explicit, read-only phone-tool check. When tapped,
 it asks Termux whether `ssh`, `timeout`, and `nano` are available and shows any
 missing tool beside the existing manual install command. It needs Termux's
 RUN_COMMAND permission and external-app setting; it does not inspect SSH keys
 or connect to a host. Manual setup remains available. Device verification of
-this new check is pending.
+this new check passed on a Pixel with all three tools available.
 
 ## Build
 
@@ -113,6 +114,15 @@ device. Local validation passed 23 JVM tests, lint and debug APK assembly.
 The scroll-position fix was installed on a Pixel and checked after a current-tab
 tap, app resume, tab switch, and live session-list refresh. JVM tests, lint and
 debug APK assembly passed for the fix.
+
+The 0.3.0-dev debug APK was installed on a Pixel on 2026-09-30. The app smoke
+test passed launch, navigation, command validation and preview, opening Termux
+without running a command, and saved-setting restoration. A live phone-tool
+check reported SSH, `timeout` and Nano available. A live session-list refresh
+exposed an attachable row;
+tapping it opened the reattach command preview without executing it. After the
+30-second freshness window, the row action disappeared. Missing-tool handling
+and other Android versions were not tested on-device in this pass.
 
 ## ADB reliability checks
 
